@@ -1,0 +1,58 @@
+{% extends "adminpanel/base_admin.html" %}
+{% block title %}Bác sĩ · Admin{% endblock %}
+{% block content %}
+<div class="card card-soft p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Quản lý bác sĩ</h5>
+  </div>
+  
+  <form class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+      <label class="form-label">Tìm kiếm</label>
+      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Tên bác sĩ hoặc số giấy phép..." class="form-control">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100"><i class="bi bi-search"></i> Tìm</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Tên</th><th>Chuyên khoa</th><th>Học vị</th><th>Số giấy phép</th><th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white" style="width:32px;height:32px;">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div>
+                <div class="fw-semibold">{{ d.user.full_name }}</div>
+                <small class="text-muted">{{ d.user.email }}</small>
+              </div>
+            </div>
+          </td>
+          <td>{{ d.specialty.name|default:"-" }}</td>
+          <td>{{ d.rank|default:"-" }}</td>
+          <td>{{ d.license_number|default:"-" }}</td>
+          <td>
+            {% if d.user.is_active %}
+              <span class="badge bg-success">Hoạt động</span>
+            {% else %}
+              <span class="badge bg-secondary">Không hoạt động</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

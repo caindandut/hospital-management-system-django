@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách khám hôm nay</title>
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+</head>
+<body class="home-page">
+    <div class="container py-4">
+        <h3 class="mb-3">Danh sách khám hôm nay ({{ today }})</h3>
+        {% if appointments %}
+        <table class="table table-sm table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Giờ</th>
+                    <th>Bệnh nhân</th>
+                    <th>Bác sĩ</th>
+                    <th>Phòng</th>
+                    <th>Trạng thái</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in appointments %}
+                <tr>
+                    <td>{{ a.appointment_at|date:'H:i' }}</td>
+                    <td>{{ a.patient.user.full_name|default:'-' }}</td>
+                    <td>{{ a.doctor.user.full_name|default:a.doctor_id }}</td>
+                    <td>{{ a.doctor.room_number|default:'-' }}</td>
+                    <td>{{ a.get_status_display }}</td>
+                    <td>
+                        <a href="{% url 'appointments:appointment_detail' a.id %}" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-info">Hôm nay chưa có lịch khám.</div>
+        {% endif %}
+        <a href="{% url 'theme:home' %}" class="btn btn-secondary">Về trang chủ</a>
+    </div>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>
+
+

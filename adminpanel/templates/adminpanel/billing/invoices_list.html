@@ -1,0 +1,82 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load vnd %}
+{% load static %}
+{% block title %}Quản lý hóa đơn · Admin{% endblock %}
+{% block content %}
+<div class="container-fluid py-3">
+  <h4 class="mb-3">Quản lý hóa đơn</h4>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm"><div class="card-body"><div class="text-muted">Hóa đơn chờ hôm nay</div><div class="h4 m-0">{{ unpaid_today }}</div></div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm"><div class="card-body"><div class="text-muted">Đã thanh toán hôm nay</div><div class="h4 m-0">{{ paid_today }}</div></div></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card shadow-sm"><div class="card-body"><div class="text-muted">Doanh thu hôm nay</div><div class="h4 m-0">{{ revenue_today|vnd }}</div></div></div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>STT</th>
+            <th>Mã HĐ</th>
+            <th>Bệnh nhân</th>
+            <th>Bác sĩ</th>
+            <th>Ngày</th>
+            <th class="text-end">Số tiền</th>
+            <th>Trạng thái</th>
+            <th class="text-center">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inv in page_obj %}
+          <tr>
+            <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+            <td>#{{ inv.id|stringformat:"05d" }}</td>
+            <td>{{ inv.appointment.patient.user.full_name }}</td>
+            <td>{{ inv.appointment.doctor.user.full_name }}</td>
+            <td>{{ inv.created_at|date:"d/m/Y H:i" }}</td>
+            <td class="text-end">{{ inv.amount_due|vnd }}</td>
+            <td>
+              {% if inv.status == 'PAID' %}<span class="badge bg-success">Đã thanh toán</span>{% else %}<span class="badge bg-warning text-dark">Chờ thanh toán</span>{% endif %}
+            </td>
+            <td class="text-center">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'adminpanel:admin_invoice_detail' inv.id %}">Xem</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'adminpanel:admin_invoice_print' inv.id %}">In</a>
+              {% if inv.status == 'UNPAID' %}
+              <form action="{% url 'adminpanel:admin_invoice_cash' inv.id %}" method="post" class="d-inline">{% csrf_token %}<button class="btn btn-sm btn-success">Nhận tiền mặt</button></form>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-white">
+      <nav>
+        <ul class="pagination mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">«</span></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">»</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

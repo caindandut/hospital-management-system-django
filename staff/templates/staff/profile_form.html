@@ -1,0 +1,151 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ nhân viên</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <h1 class="text-primary mb-1">Hồ sơ nhân viên</h1>
+    <p class="text-muted mb-4">Cập nhật thông tin cá nhân & công việc</p>
+
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="user_id" value="{{ target_user.id }}" />
+
+        <div class="row g-4">
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h5 class="text-primary mb-3">Thông tin cá nhân</h5>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Họ và tên</label>
+                                <input type="text" class="form-control" name="full_name" value="{{ profile.full_name }}" required>
+                                <div class="invalid-feedback">Vui lòng nhập họ tên.</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Giới tính</label>
+                                <select class="form-select" name="gender">
+                                    <option value="" {% if not profile.gender %}selected{% endif %}>--</option>
+                                    <option value="MALE" {% if profile.gender == 'MALE' %}selected{% endif %}>Nam</option>
+                                    <option value="FEMALE" {% if profile.gender == 'FEMALE' %}selected{% endif %}>Nữ</option>
+                                    <option value="OTHER" {% if profile.gender == 'OTHER' %}selected{% endif %}>Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Ngày sinh</label>
+                                <input type="date" class="form-control" name="date_of_birth" value="{{ profile.date_of_birth|date:'Y-m-d' }}">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">CCCD</label>
+                                <input type="text" class="form-control" name="cccd" value="{{ profile.cccd }}" maxlength="12" pattern="^[0-9]{9,12}$">
+                                <div class="invalid-feedback">CCCD không hợp lệ (9-12 số).</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">SĐT</label>
+                                <input type="text" class="form-control" name="phone" value="{{ profile.phone }}" pattern="^[0-9]{10}$">
+                                <div class="invalid-feedback">SĐT không hợp lệ (10 số).</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" value="{{ target_user.email }}" readonly>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ</label>
+                                <input type="text" class="form-control" name="address" value="{{ profile.address }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h5 class="text-primary mb-3">Thông tin công việc</h5>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Mã nhân viên</label>
+                                <input type="text" class="form-control" name="employee_code" value="{{ profile.employee_code }}">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Chức danh</label>
+                                <input type="text" class="form-control" name="position" value="{{ profile.position }}" placeholder="Tiếp tân/Thu ngân/CSKH...">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Ca làm</label>
+                                <select class="form-select" name="shift">
+                                    <option value="MORNING" {% if profile.shift == 'MORNING' %}selected{% endif %}>Sáng</option>
+                                    <option value="AFTERNOON" {% if profile.shift == 'AFTERNOON' %}selected{% endif %}>Chiều</option>
+                                    <option value="ROTATE" {% if profile.shift == 'ROTATE' or not profile.shift %}selected{% endif %}>Xoay</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Ngày bắt đầu</label>
+                                <input type="date" class="form-control" name="start_date" value="{{ profile.start_date|date:'Y-m-d' }}">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Trạng thái</label>
+                                <select class="form-select" name="status">
+                                    <option value="ACTIVE" {% if profile.status == 'ACTIVE' or not profile.status %}selected{% endif %}>Đang làm</option>
+                                    <option value="INACTIVE" {% if profile.status == 'INACTIVE' %}selected{% endif %}>Nghỉ</option>
+                                    <option value="ON_LEAVE" {% if profile.status == 'ON_LEAVE' %}selected{% endif %}>Tạm nghỉ</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="text-primary mb-3">Thông tin hệ thống</h5>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Role</label>
+                                <input type="text" class="form-control" value="{{ target_user.role }}" readonly>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Ngày tạo</label>
+                                <input type="text" class="form-control" value="{{ profile.created_at|date:'d/m/Y' }}" readonly>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Cập nhật</label>
+                                <input type="text" class="form-control" value="{{ profile.updated_at|date:'d/m/Y' }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Lưu thay đổi</button>
+            <a class="btn btn-outline-secondary" href="javascript:history.back()">Hủy</a>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const forms = document.querySelectorAll('.needs-validation');
+  Array.prototype.slice.call(forms).forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  });
+})();
+</script>
+</body>
+</html>
+
+

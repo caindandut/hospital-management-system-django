@@ -1,0 +1,259 @@
+{% extends "adminpanel/base_admin.html" %}
+{% block title %}Dashboard · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Trang quản trị</h5>
+    <form method="get" class="d-flex align-items-center gap-2">
+      <label class="text-muted small">Khoảng thời gian</label>
+      <select name="range" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="7"  {% if day_range == 7 %}selected{% endif %}>7 ngày</option>
+        <option value="30" {% if day_range == 30 %}selected{% endif %}>30 ngày</option>
+      </select>
+    </form>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card card-soft p-3">
+        <div class="text-muted">Ca hôm nay</div>
+        <div class="fs-2 fw-bold text-primary">{{ appt_today|default:"0" }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card card-soft p-3">
+        <div class="text-muted">Doanh thu hôm nay</div>
+        <div class="fs-2 fw-bold text-success">{{ revenue_today|floatformat:0|default:"0" }} VNĐ</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card card-soft p-3">
+        <div class="text-muted">Hóa đơn chờ</div>
+        <div class="fs-2 fw-bold text-warning">{{ unpaid|default:"0" }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card card-soft p-3">
+        <div class="text-muted">Bác sĩ hoạt động</div>
+        <div class="fs-2 fw-bold text-info">{{ active_doctors|default:"0" }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-4">
+    <div class="col-lg-6">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Lượt khám {{ day_range }} ngày</div>
+        <canvas id="chartVisits" height="230"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Doanh thu {{ day_range }} ngày</div>
+        <canvas id="chartRevenue" height="230"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-4">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Bác sĩ theo chuyên khoa</div>
+        <canvas id="chartDocSpec" height="220"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Tỷ lệ trạng thái lịch hẹn (hôm nay)</div>
+        <canvas id="chartApptStatus" height="220"></canvas>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Doanh thu theo dịch vụ ({{ date_from|date:"d/m" }} - {{ today|date:"d/m" }})</div>
+        <canvas id="chartRevType" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <!-- A) Hiệu suất bác sĩ hôm nay -->
+    <div class="col-lg-8">
+      <div class="card card-soft p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fw-semibold">Hiệu suất bác sĩ (hôm nay)</div>
+          <span class="text-muted small">Slot mở / đã đặt / % lấp đầy</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead>
+              <tr class="text-muted small">
+                <th>Bác sĩ</th>
+                <th class="text-center">Mở</th>
+                <th class="text-center">Đã đặt</th>
+                <th style="width:40%">Lấp đầy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in doctor_perf_rows %}
+              {% with pct=r.utilization %}
+              <tr>
+                <td class="fw-medium">{{ r.doctor_name }}</td>
+                <td class="text-center">{{ r.open_slots }}</td>
+                <td class="text-center">{{ r.booked }}</td>
+                <td>
+                  <div class="progress" style="height:8px;">
+                    {% if pct > 80 %}
+                      <div class="progress-bar bg-danger" role="progressbar" data-width="{{ pct }}"></div>
+                    {% elif pct > 50 %}
+                      <div class="progress-bar bg-warning" role="progressbar" data-width="{{ pct }}"></div>
+                    {% else %}
+                      <div class="progress-bar bg-success" role="progressbar" data-width="{{ pct }}"></div>
+                    {% endif %}
+                  </div>
+                  <div class="small text-muted mt-1">{{ pct }}%</div>
+                </td>
+              </tr>
+              {% endwith %}
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">Chưa có lịch làm việc hôm nay.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- B) Top 5 bác sĩ theo số ca -->
+    <div class="col-lg-4">
+      <div class="card card-soft p-3 h-100">
+        <div class="fw-semibold mb-2">Top 5 bác sĩ có nhiều ca nhất ({{ day_range }} ngày)</div>
+        <canvas id="chartTop5Doctor" height="230"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data for charts -->
+{{ chart_labels|json_script:"visit-labels" }}
+{{ chart_labels|json_script:"revenue-labels" }}
+{{ chart_appt|json_script:"visit-data" }}
+{{ chart_revenue|json_script:"revenue-data" }}
+{{ chart_doc_spec_labels|json_script:"doc-spec-labels" }}
+{{ chart_doc_spec_data|json_script:"doc-spec-data" }}
+{{ chart_appt_status_labels|json_script:"appt-status-labels" }}
+{{ chart_appt_status_data|json_script:"appt-status-data" }}
+{{ chart_rev_type_labels|json_script:"rev-type-labels" }}
+{{ chart_rev_type_datasets|json_script:"rev-type-datasets" }}
+{{ top5_doctor_labels|json_script:"top5-doctor-labels" }}
+{{ top5_doctor_data|json_script:"top5-doctor-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+  function colors(n){
+    const base=["#4c7af2","#64c0a9","#f2b84c","#f26a6a","#8b78e6","#46b3f2","#53d86a","#f27f3d","#e85aa5","#7bc86c"];return Array.from({length:n},(_,i)=>base[i%base.length]);
+  }
+  const fmt = new Intl.NumberFormat('vi-VN');
+
+  const vLabels = JSON.parse(document.getElementById('visit-labels').textContent);
+  const vData   = JSON.parse(document.getElementById('visit-data').textContent);
+  if (document.getElementById('chartVisits')){
+    new Chart(document.getElementById('chartVisits'),{
+      type:'line',
+      data:{ labels:vLabels, datasets:[{ label:'Lượt khám', data:vData, fill:true, tension:.35, borderColor:'#4c7af2', backgroundColor:'rgba(76,122,242,.15)' }]},
+      options:{ plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+    });
+  }
+
+  const rLabels = JSON.parse(document.getElementById('revenue-labels').textContent);
+  const rData   = JSON.parse(document.getElementById('revenue-data').textContent);
+  if (document.getElementById('chartRevenue')){
+    new Chart(document.getElementById('chartRevenue'),{
+      type:'bar',
+      data:{ labels:rLabels, datasets:[{ label:'Doanh thu (VND)', data:rData, borderWidth:1, backgroundColor:'rgba(83,216,106,.35)', borderColor:'#53d86a' }]},
+      options:{
+        plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>` ${fmt.format(c.parsed.y)} VND` } } },
+        scales:{ y:{ beginAtZero:true, ticks:{ callback:(v)=>fmt.format(v) } } }
+      }
+    });
+  }
+
+  const dsLabels = JSON.parse(document.getElementById('doc-spec-labels').textContent);
+  const dsData   = JSON.parse(document.getElementById('doc-spec-data').textContent);
+  if (document.getElementById('chartDocSpec') && dsLabels.length){
+    new Chart(document.getElementById('chartDocSpec'),{
+      type:'doughnut',
+      data:{ labels:dsLabels, datasets:[{ data:dsData, backgroundColor:colors(dsData.length) }]},
+      options:{ plugins:{ legend:{ position:'bottom' } } }
+    });
+  }
+
+  const sLabels = JSON.parse(document.getElementById('appt-status-labels').textContent);
+  const sData   = JSON.parse(document.getElementById('appt-status-data').textContent);
+  if (document.getElementById('chartApptStatus')){
+    new Chart(document.getElementById('chartApptStatus'),{
+      type:'doughnut',
+      data:{ labels:sLabels, datasets:[{ data:sData, backgroundColor:colors(sData.length) }]},
+      options:{ plugins:{ legend:{ position:'bottom' } } }
+    });
+  }
+
+  const rtLabels = JSON.parse(document.getElementById('rev-type-labels').textContent);
+  const rtDatasets = JSON.parse(document.getElementById('rev-type-datasets').textContent);
+  if (document.getElementById('chartRevType')){
+    const ds = rtDatasets.map((d,i)=>({ 
+      label: d.label === 'CONSULTATION' ? 'Khám bệnh' : d.label === 'DRUG' ? 'Thuốc' : d.label, 
+      data:d.data, 
+      backgroundColor: colors(rtDatasets.length)[i], 
+      borderWidth:1 
+    }));
+    new Chart(document.getElementById('chartRevType'),{
+      type:'bar',
+      data:{ labels: rtLabels, datasets: ds },
+      options:{
+        responsive:true,
+        scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true, ticks:{ callback:(v)=>fmt.format(v) } } },
+        plugins:{ tooltip:{ callbacks:{ label:(c)=>` ${c.dataset.label}: ${fmt.format(c.parsed.y)} VND` } }, legend:{ position:'bottom' } }
+      }
+    });
+  }
+
+  // Top 5 doctors chart
+  const t5Labels = JSON.parse(document.getElementById('top5-doctor-labels').textContent);
+  const t5Data   = JSON.parse(document.getElementById('top5-doctor-data').textContent);
+  if (document.getElementById('chartTop5Doctor') && t5Labels.length){
+    new Chart(document.getElementById('chartTop5Doctor'), {
+      type: 'bar',
+      data: {
+        labels: t5Labels,
+        datasets: [{
+          label: 'Số ca',
+          data: t5Data,
+          backgroundColor: colors(t5Data.length),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c)=>` ${fmt.format(c.parsed.y)} ca` } }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    });
+  }
+
+  // Set progress bar widths
+  document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+    const width = bar.getAttribute('data-width');
+    bar.style.width = width + '%';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,359 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load static %}
+{% load media_extras %}
+{% load vi_format %}
+{% load vnd %}
+{% block title %}Bác sĩ · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0">Quản lý bác sĩ</h5>
+    <div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateDoctor">+ Thêm bác sĩ</button>
+    </div>
+  </div>
+
+  <form class="row g-2 mb-3">
+    <div class="col-md-4">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Tìm theo tên, email, số giấy phép…">
+    </div>
+    <div class="col-md-3">
+      <select name="specialty" class="form-select">
+        <option value="">Tất cả chuyên khoa</option>
+        {% for s in specialties %}
+          <option value="{{ s.id }}" {% if sp|default:'' == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">Tất cả trạng thái</option>
+        <option value="active" {% if st == 'active' %}selected{% endif %}>Hoạt động</option>
+        <option value="inactive" {% if st == 'inactive' %}selected{% endif %}>Khóa</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-secondary w-100">Lọc</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Tên</th>
+            <th>Chuyên khoa</th>
+            <th>Học vị</th>
+            <th>SĐT</th>
+            <th>Số giấy phép</th>
+            <th>Phòng</th>
+            <th>Phí khám</th>
+            <th>Trạng thái</th>
+            <th class="text-end">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in doctors %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <img src="{% resolve_avatar_url doctor=d user=d.user %}" class="rounded-circle" width="34" height="34" style="object-fit: cover;">
+                <div>
+                  <div class="fw-semibold">{{ d.user.full_name }}</div>
+                  <div class="text-muted small">{{ d.user.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ d.specialty.name }}</td>
+            <td>{{ d.rank|default:"-" }}</td>
+            <td>{{ d.user.phone|default:"-" }}</td>
+            <td>{{ d.license_number }}</td>
+            <td>{{ d.room_number|default:"-" }}</td>
+            <td>
+              {% if d.rank and rank_fee_dict|lookup:d.rank %}
+                {{ rank_fee_dict|lookup:d.rank|vnd }}
+              {% else %}
+                {{ d.consultation_fee|vnd }}
+              {% endif %}
+            </td>
+            <td>
+              {% if d.user.is_active %}
+                <span class="badge bg-success-subtle text-success">Hoạt động</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Khóa</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editDoctorModal{{ d.id }}">Sửa</button>
+                <a href="{% url 'adminpanel:admin_doctor_toggle_active' d.id %}" class="btn btn-sm btn-outline-warning">{% if d.user.is_active %}Khóa{% else %}Mở{% endif %}</a>
+              </div>
+            </td>
+          </tr>
+          <!-- Edit Modal -->
+          <div class="modal fade" id="editDoctorModal{{ d.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <form class="formEditDoctor" data-id="{{ d.id }}" novalidate>
+                  {% csrf_token %}
+                  <div class="modal-header">
+                    <h5 class="modal-title">Sửa bác sĩ: {{ d.user.full_name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Họ và tên</label>
+                        <input name="full_name" class="form-control" value="{{ d.user.full_name }}">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">SĐT</label>
+                        <input name="phone" class="form-control" value="{{ d.user.phone|default:'' }}">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Chuyên khoa</label>
+                        <select name="specialty_id" class="form-select">
+                          {% for s in specialties %}
+                            <option value="{{ s.id }}" {% if d.specialty_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Học vị</label>
+                        <select name="rank" class="form-select">
+                          <option value="" {% if not d.rank %}selected{% endif %}>-- Không --</option>
+                          <option value="BS" {% if d.rank == 'BS' %}selected{% endif %}>BS</option>
+                          <option value="ThS" {% if d.rank == 'ThS' %}selected{% endif %}>ThS</option>
+                          <option value="TS" {% if d.rank == 'TS' %}selected{% endif %}>TS</option>
+                          <option value="PGS" {% if d.rank == 'PGS' %}selected{% endif %}>PGS</option>
+                          <option value="GS" {% if d.rank == 'GS' %}selected{% endif %}>GS</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Phòng</label>
+                        <input name="room_number" class="form-control" value="{{ d.room_number|default:'' }}">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Số giấy phép</label>
+                        <input name="license_number" class="form-control" value="{{ d.license_number|default:'' }}">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Năm KN</label>
+                        <input name="years_experience" type="number" min="0" class="form-control" value="{{ d.years_experience|default:0 }}">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Phí khám (VND)</label>
+                        <div class="input-group">
+                          <input name="consultation_fee" class="form-control vnd-input" value="{% if d.rank and rank_fee_dict|lookup:d.rank %}{{ rank_fee_dict|lookup:d.rank|add_thousand_separator }}{% else %}{{ d.consultation_fee|add_thousand_separator }}{% endif %}">
+                          <span class="input-group-text">VND</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button class="btn btn-primary" type="submit">Lưu</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted py-4">Chưa có bác sĩ</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Doctor Modal -->
+  <div class="modal fade" id="modalCreateDoctor" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <form id="formCreateDoctor" class="needs-validation" novalidate>
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Thêm bác sĩ</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Họ và tên *</label>
+                <input name="full_name" class="form-control" required>
+                <div class="invalid-feedback">Vui lòng nhập họ tên</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email *</label>
+                <input name="email" type="email" class="form-control" required>
+                <div class="invalid-feedback">Email không hợp lệ</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">SĐT</label>
+                <input name="phone" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Chuyên khoa *</label>
+                <select name="specialty_id" class="form-select" required>
+                  <option value="">-- Chọn --</option>
+                  {% for s in specialties %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="invalid-feedback">Chọn chuyên khoa</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Học vị</label>
+                <select name="rank" class="form-select">
+                  <option value="">-- Không --</option>
+                  <option value="BS">BS</option>
+                  <option value="ThS">ThS</option>
+                  <option value="TS">TS</option>
+                  <option value="PGS">PGS</option>
+                  <option value="GS">GS</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Số giấy phép *</label>
+                <input name="license_number" class="form-control" required>
+                <div class="invalid-feedback">Nhập số giấy phép</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Năm KN</label>
+                <input name="years_experience" type="number" min="0" class="form-control" value="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Phòng</label>
+                <input name="room_number" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Phí khám (VND)</label>
+                <input name="consultation_fee" id="consultation_fee" class="form-control"  readonly>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Mật khẩu *</label>
+                <input name="password" type="password" class="form-control" required>
+                <div class="invalid-feedback">Vui lòng nhập mật khẩu</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Xác nhận mật khẩu *</label>
+                <input name="password2" type="password" class="form-control" required>
+                <div class="invalid-feedback">Vui lòng xác nhận mật khẩu</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button class="btn btn-primary" type="submit">Tạo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // VND input formatting
+    function unformat(v){return (v||'').toString().replace(/[^0-9]/g,'');}
+    function format(v){try{const n=unformat(v); if(!n) return ''; return Number(n).toLocaleString('vi-VN');}catch(e){return v;}}
+    document.addEventListener('input', function(e){
+      if(e.target.classList && e.target.classList.contains('vnd-input')){
+        const f=format(e.target.value); e.target.value=f; try{e.target.setSelectionRange(f.length,f.length);}catch(err){}
+      }
+    });
+    document.addEventListener('submit', function(e){
+      if(e.target.classList && e.target.classList.contains('formEditDoctor')){
+        e.target.querySelectorAll('.vnd-input').forEach(inp=>{inp.value=unformat(inp.value)});
+      }
+    }, true);
+
+    const form = document.getElementById('formCreateDoctor');
+    if (form) {
+      // Auto-fill consultation fee based on degree
+      const rankSelect = form.querySelector('select[name="rank"]');
+      const consultationFeeInput = form.querySelector('input[name="consultation_fee"]');
+      
+      const feeMapping = JSON.parse('{{ fee_mapping|escapejs }}');
+      
+      function updateConsultationFee() {
+        const selectedRank = rankSelect.value;
+        if (selectedRank && feeMapping[selectedRank]) {
+          consultationFeeInput.value = feeMapping[selectedRank].toLocaleString('vi-VN');
+        } else {
+          consultationFeeInput.value = '';
+        }
+      }
+      
+      rankSelect.addEventListener('change', updateConsultationFee);
+      
+      // Password confirmation validation
+      const password = form.querySelector('input[name="password"]');
+      const password2 = form.querySelector('input[name="password2"]');
+      
+      function validatePasswordMatch() {
+        if (password.value !== password2.value) {
+          password2.setCustomValidity('Mật khẩu không khớp');
+        } else {
+          password2.setCustomValidity('');
+        }
+      }
+      
+      password.addEventListener('input', validatePasswordMatch);
+      password2.addEventListener('input', validatePasswordMatch);
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        console.log('Form submitted');
+        
+        // Validate password match
+        validatePasswordMatch();
+        
+        form.classList.add('was-validated');
+        if(!form.checkValidity()) {
+          console.log('Form validation failed');
+          return;
+        }
+        console.log('Form validation passed, sending request...');
+        const fd = new FormData(form);
+        try {
+          const res = await fetch("{% url 'adminpanel:admin_doctors_create' %}", { 
+            method: 'POST', 
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}, 
+            body: fd 
+          });
+          console.log('Response status:', res.status);
+          const data = await res.json();
+          console.log('Response data:', data);
+          if(data.ok){ 
+            location.reload(); 
+          } else { 
+            alert(data.msg || 'Lỗi không xác định'); 
+          }
+        } catch (error) {
+          console.error('Request failed:', error);
+          alert('Có lỗi xảy ra khi gửi yêu cầu');
+        }
+      });
+    } else {
+      console.error('Form not found: formCreateDoctor');
+    }
+
+    // Edit doctor forms (per-row)
+    document.querySelectorAll('.formEditDoctor').forEach(formEl=>{
+      formEl.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const id = formEl.getAttribute('data-id');
+        const fd = new FormData(formEl);
+        const res = await fetch(`{% url 'adminpanel:admin_doctor_update' 0 %}`.replace('/0/','/' + id + '/'), {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd});
+        const data = await res.json();
+        if(data.ok){ location.reload(); } else { alert(data.msg || 'Không lưu được'); }
+      });
+    });
+  })();
+  </script>
+</div>
+{% endblock %}
+
+

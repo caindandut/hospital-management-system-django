@@ -1,0 +1,173 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load tz %}
+{% block title %}Lịch hẹn · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Quản lý lịch hẹn</h5>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-soft p-3 h-100">
+        <div class="text-muted small">Ca sắp đến</div>
+        <div class="fs-4 fw-semibold text-primary">{{ kpi.upcoming }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-soft p-3 h-100">
+        <div class="text-muted small">Đang khám</div>
+        <div class="fs-4 fw-semibold text-info">{{ kpi.in_progress }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-soft p-3 h-100">
+        <div class="text-muted small">Đã hoàn thành</div>
+        <div class="fs-4 fw-semibold text-success">{{ kpi.completed }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-soft p-3 h-100">
+        <div class="text-muted small">Đã hủy</div>
+        <div class="fs-4 fw-semibold text-danger">{{ kpi.cancelled }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Form -->
+  <div class="card card-soft p-3 mb-3">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">Tìm kiếm</label>
+        <input type="text" name="q" value="{{ filters.q }}" class="form-control" placeholder="Tên, SĐT...">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Từ ngày</label>
+        <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Đến ngày</label>
+        <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Bác sĩ</label>
+        <select name="doctor_id" class="form-select">
+          <option value="">Tất cả</option>
+          {% for doctor in doctors %}
+          <option value="{{ doctor.id }}" {% if filters.doctor_id == doctor.id|stringformat:"s" %}selected{% endif %}>
+            {{ doctor.user.full_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Chuyên khoa</label>
+        <select name="specialty_id" class="form-select">
+          <option value="">Tất cả</option>
+          {% for specialty_id, specialty_name in specialties %}
+          <option value="{{ specialty_id }}" {% if filters.specialty_id == specialty_id|stringformat:"s" %}selected{% endif %}>
+            {{ specialty_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <label class="form-label">Trạng thái</label>
+        <select name="status" class="form-select">
+          <option value="">Tất cả</option>
+          <option value="PENDING" {% if filters.status == 'PENDING' %}selected{% endif %}>Chờ xác nhận</option>
+          <option value="CONFIRMED" {% if filters.status == 'CONFIRMED' %}selected{% endif %}>Đã xác nhận</option>
+          <option value="IN_PROGRESS" {% if filters.status == 'IN_PROGRESS' %}selected{% endif %}>Đang khám</option>
+          <option value="COMPLETED" {% if filters.status == 'COMPLETED' %}selected{% endif %}>Đã hoàn thành</option>
+          <option value="CANCELLED" {% if filters.status == 'CANCELLED' %}selected{% endif %}>Đã hủy</option>
+          <option value="NO_SHOW" {% if filters.status == 'NO_SHOW' %}selected{% endif %}>Không đến</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i> Lọc
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Appointments Table -->
+  <div class="card card-soft">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="bg-body-tertiary sticky-top" style="top:0;">
+          <tr class="text-muted">
+            <th style="width:80px">STT</th>
+            <th>Giờ</th>
+            <th>Bệnh nhân</th>
+            <th>SĐT</th>
+            <th>Bác sĩ</th>
+            <th>Chuyên khoa</th>
+            <th>Trạng thái</th>
+            <th style="width:120px">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in appointments_page %}
+          <tr>
+            <td>{{ forloop.counter0|add:start_index|add:1 }}</td>
+            <td>{{ a.appointment_at|localtime|date:"H:i d/m" }}</td>
+            <td>{{ a.patient.user.full_name }}</td>
+            <td>{{ a.patient.user.phone }}</td>
+            <td>{{ a.doctor.user.full_name }}</td>
+            <td>{{ a.doctor.specialty.name }}</td>
+            <td>
+              {% if a.status == "CONFIRMED" %}
+                <span class="badge text-bg-primary">Đã xác nhận</span>
+              {% elif a.status == "IN_PROGRESS" %}
+                <span class="badge text-bg-info">Đang khám</span>
+              {% elif a.status == "COMPLETED" %}
+                <span class="badge text-bg-success">Đã khám</span>
+              {% elif a.status == "CANCELLED" %}
+                <span class="badge text-bg-danger">Đã hủy</span>
+              {% elif a.status == "NO_SHOW" %}
+                <span class="badge text-bg-warning text-dark">Không đến</span>
+              {% else %}
+                <span class="badge text-bg-secondary">Chờ</span>
+              {% endif %}
+            </td>
+            <td>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'adminpanel:appointment_detail' a.id %}">
+                Chi tiết
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted py-4">Không có lịch hẹn.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center p-3">
+      <div class="text-muted small">
+        Trang {{ appointments_page.number }} / {{ appointments_page.paginator.num_pages }}
+        — Tổng {{ appointments_page.paginator.count }}
+      </div>
+      <nav>
+        <ul class="pagination mb-0">
+          {% if appointments_page.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ appointments_page.previous_page_number }}&{{ request.GET.urlencode|cut:'page='|cut:'page_size=' }}">«</a>
+            </li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ appointments_page.number }}</span></li>
+          {% if appointments_page.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ appointments_page.next_page_number }}&{{ request.GET.urlencode|cut:'page='|cut:'page_size=' }}">»</a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

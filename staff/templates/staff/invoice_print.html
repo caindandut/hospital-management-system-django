@@ -1,0 +1,75 @@
+{% extends "_print_base.html" %}
+{% load vi_format %}
+
+{% block print_title %}Hóa đơn khám bệnh{% endblock %}
+
+{% block print_body %}
+  <!-- Clinic Header -->
+  <div class="clinic-header">
+    <h4 class="mb-1">PHÒNG KHÁM ĐẠI HỌC BÁCH KHOA ĐÀ NẴNG</h4>
+    <p class="mb-1">Địa chỉ: 54 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng</p>
+    <p class="mb-0">Điện thoại: (0236) 3731 111</p>
+  </div>
+
+  <h5 class="print-title">HÓA ĐƠN KHÁM BỆNH</h5>
+
+  <div class="info-section">
+    <div class="row g-2 small mb-3">
+      <div class="col-md-6"><strong>Mã hóa đơn:</strong> #{{ inv.id }}</div>
+      <div class="col-md-6"><strong>Ngày:</strong> {{ inv.appointment.appointment_at|date:"d/m/Y H:i" }}</div>
+      <div class="col-md-6"><strong>Bệnh nhân:</strong> {{ inv.appointment.patient.user.full_name }}</div>
+      <div class="col-md-6"><strong>Bác sĩ:</strong> {{ inv.appointment.doctor.user.full_name }}</div>
+      {% if inv.appointment.doctor.specialty %}
+      <div class="col-md-6"><strong>Chuyên khoa:</strong> {{ inv.appointment.doctor.specialty.name }}</div>
+      {% endif %}
+      {% if inv.appointment.doctor.room_number %}
+      <div class="col-md-6"><strong>Phòng khám:</strong> {{ inv.appointment.doctor.room_number }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <table class="table table-sm">
+    <thead class="table-light">
+      <tr>
+        <th>Diễn giải</th>
+        <th class="text-end" style="width: 10%;">SL</th>
+        <th class="text-end" style="width: 20%;">Đơn giá</th>
+        <th class="text-end" style="width: 20%;">Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in items %}
+      <tr>
+        <td>{{ it.description }}</td>
+        <td class="text-end">{{ it.quantity|floatformat:0 }}</td>
+        <td class="text-end">{{ it.unit_price|vnd }}</td>
+        <td class="text-end">
+          {% if it.line_total_calc %}{{ it.line_total_calc|vnd }}
+          {% elif it.line_total %}{{ it.line_total|vnd }}
+          {% else %}{{ it.quantity|floatformat:2 }} × {{ it.unit_price|vnd }}{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="table-primary">
+        <th colspan="3" class="text-end">TỔNG CỘNG</th>
+        <th class="text-end">{{ total|default:inv.amount_due|vnd }}</th>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="signature-section">
+    <p><strong>Ngày {{ inv.appointment.appointment_at|date:"d" }} tháng {{ inv.appointment.appointment_at|date:"m" }} năm {{ inv.appointment.appointment_at|date:"Y" }}</strong></p>
+    <p class="mb-1"><strong>Thu ngân</strong></p>
+    <div style="margin-top: 2rem; font-weight: 600;">
+      {{ cashier.full_name|default:"..................................." }}
+    </div>
+  </div>
+
+  <div class="text-center mt-4 small text-muted">
+    Cảm ơn bạn đã tin tưởng dịch vụ của chúng tôi
+  </div>
+{% endblock %}
+
+

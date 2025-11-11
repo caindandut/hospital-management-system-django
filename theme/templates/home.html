@@ -1,0 +1,444 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <title>DUT Hospital</title>
+    <link rel="icon" href="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}"
+        type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
+    <!-- Custom Home CSS -->
+    <link rel="stylesheet" href="{% static 'css/home.css' %}?v=1.1">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="home-page" style="font-family: 'Inter', sans-serif; background-color: #f8f9fa;">
+    <!-- Header -->
+    <header class="bg-white shadow-lg sticky-top" style="z-index: 1050;">
+        <div class="container-fluid">
+            <!-- Hàng trên: Logo, Search, Actions -->
+            <div class="row align-items-center py-2 py-md-3 border-bottom border-light header-container">
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <!-- Logo bên trái -->
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary rounded me-2 me-md-3 d-flex align-items-center justify-content-center hospital-logo"
+                                style="width: 48px; height: 48px;">
+                                <img src="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}"
+                                    alt="Logo" class="hospital-logo" style="width: 48px; height: 48px;">
+                            </div>
+                            <div class="d-none d-sm-block">
+                                <h1 class="fs-6 fw-bold mb-0 text-primary hospital-name">DUT HOSPITAL</h1>
+                            </div>
+                            <div class="d-block d-sm-none">
+                                <h1 class="fs-6 fw-bold mb-0 text-primary hospital-name">DUT HOSPITAL</h1>
+                            </div>
+                        </div>
+
+                        <!-- Menu điều hướng ở giữa - chỉ hiển thị khi chưa đăng nhập -->
+                        {% if not user.is_authenticated %}
+                        <nav class="d-none d-lg-flex align-items-center">
+                            <ul class="nav nav-pills">
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary position-relative" href="/">
+                                        Trang chủ
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary position-relative" href="/about">
+                                        Giới thiệu
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link text-primary dropdown-toggle position-relative" href="#"
+                                        role="button" data-bs-toggle="dropdown">
+                                        Chuyên khoa
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/specialty/cardiology"><i
+                                                    class="bi bi-heart-pulse"></i> Tim mạch</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/neurology"><i
+                                                    class="bi bi-brain"></i> Thần kinh</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/orthopedics"><i
+                                                    class="bi bi-bone"></i> Cơ xương khớp</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/pediatrics"><i
+                                                    class="bi bi-people"></i> Nhi khoa</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/gynecology"><i
+                                                    class="bi bi-gender-female"></i> Sản phụ khoa</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/dermatology"><i
+                                                    class="bi bi-droplet"></i> Da liễu</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/ophthalmology"><i
+                                                    class="bi bi-eye"></i> Mắt</a></li>
+                                        <li><a class="dropdown-item" href="/specialty/ent"><i class="bi bi-ear"></i> Tai
+                                                mũi họng</a></li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link text-primary dropdown-toggle position-relative" href="#"
+                                        role="button" data-bs-toggle="dropdown">
+                                        Đội ngũ bác sĩ
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="/doctors/professors"><i
+                                                    class="bi bi-award"></i> Giáo sư - Tiến sĩ</a></li>
+                                        <li><a class="dropdown-item" href="/doctors/specialists"><i
+                                                    class="bi bi-mortarboard"></i> Bác sĩ chuyên khoa</a></li>
+                                        <li><a class="dropdown-item" href="/doctors/residents"><i
+                                                    class="bi bi-person-badge"></i> Bác sĩ nội trú</a></li>
+                                        <li><a class="dropdown-item" href="/doctors/consultants"><i
+                                                    class="bi bi-chat-dots"></i> Bác sĩ tư vấn</a></li>
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li><a class="dropdown-item" href="/doctors/schedule"><i
+                                                    class="bi bi-calendar-check"></i> Lịch làm việc</a></li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary position-relative" href="/lookup">
+                                        Tra cứu lịch hẹn
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-primary position-relative" href="/contact">
+                                        Liên hệ
+                                        <span class="nav-underline"></span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {% endif %}
+
+                        <!-- Actions bên phải -->
+                        <div class="d-flex align-items-center action-buttons">
+                            <!-- Lối tắt cho bác sĩ: Lịch làm việc & Khám hôm nay -->
+                            {% if user.is_authenticated and IS_DOCTOR %}
+                            <a href="{% url 'appointments:schedule_index' %}"
+                                class="btn btn-outline-primary me-2 d-none d-md-inline-flex">
+                                <i class="bi bi-calendar-week me-1"></i> Lịch làm việc
+                            </a>
+                            <a href="{% url 'appointments:appt_doctor_today' %}"
+                                class="btn btn-primary me-2 d-none d-md-inline-flex">
+                                <i class="bi bi-list-check me-1"></i>Danh sách khám hôm nay
+                            </a>
+                            <a href="{% url 'appointments:pending_appointments' %}"
+                                class="btn btn-outline-warning me-3 d-none d-md-inline-flex">
+                                <i class="bi bi-clock-history me-1"></i>Lịch hẹn chờ xác nhận
+                            </a>
+                            {% endif %}
+                            <!-- Nút "Đặt lịch khám" - chỉ hiển thị khi chưa đăng nhập hoặc là PATIENT -->
+                            {% if not user.is_authenticated or IS_PATIENT %}
+                            <a href="/appointments/new" class="btn btn-appointment">
+                                <span class="d-none d-sm-inline">Đặt lịch khám</span>
+                                <span class="d-inline d-sm-none">Đặt lịch</span>
+                            </a>
+                            {% endif %}
+
+                            {% if user.is_authenticated %}
+                            <div class="dropdown user-dropdown d-none d-md-block">
+                                <button class="btn btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                    <span class="user-name">Xin chào, {{ USER_FULL_NAME|default:user.username }}</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% if IS_DOCTOR %}
+                                    <li><a class="dropdown-item" href="{% url 'doctors:profile' %}"><i
+                                                class="bi bi-person"></i> Thông tin cá nhân</a></li>
+                                    {% elif IS_STAFF %}
+                                    <li><a class="dropdown-item" href="{% url 'staff:profile_self' %}"><i
+                                                class="bi bi-person"></i> Thông tin cá nhân</a></li>
+                                    {% else %}
+                                    <li><a class="dropdown-item" href="{% url 'theme:profile' %}"><i
+                                                class="bi bi-person"></i> Thông tin cá nhân</a></li>
+                                    {% endif %}
+
+                                    {% if IS_PATIENT %}
+                                    <li><a class="dropdown-item" href="{% url 'appointments:new_step1' %}"><i
+                                                class="bi bi-plus-circle"></i> Đặt lịch hẹn</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'appointments:my_appointments' %}"><i
+                                                class="bi bi-calendar-check"></i> Lịch hẹn của tôi</a></li>
+                                    {% elif IS_DOCTOR %}
+
+                                    {% elif IS_STAFF %}
+
+                                    <li><a class="dropdown-item" href="{% url 'staff:staff_cashier' %}"><i
+                                                class="bi bi-receipt"></i> Hóa đơn</a></li>
+                                        {% elif IS_ADMIN %}
+                                    <li><a class="dropdown-item" href="{% url 'adminpanel:dashboard' %}"><i class="bi bi-speedometer2"></i> Admin Portal</a></li>
+                                    <li><a class="dropdown-item" href="/admin/"><i class="bi bi-gear"></i> Django Admin</a></li>
+                                    {% endif %}
+
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li><a class="dropdown-item" href="{% url 'theme:logout' %}"><i
+                                                class="bi bi-box-arrow-right"></i> Đăng xuất</a></li>
+                                </ul>
+                            </div>
+
+                            <a href="{% url 'theme:logout' %}" class="btn btn-user d-block d-md-none">
+                                <i class="bi bi-person-circle"></i>
+                                Đăng xuất
+                            </a>
+                            {% else %}
+                            <a href="{% url 'theme:login' %}" class="btn btn-login">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                Đăng nhập
+                            </a>
+                            {% endif %}
+
+                            <!-- Mobile menu button -->
+                            {% if not user.is_authenticated %}
+                            <button class="btn btn-outline-primary d-lg-none" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#mobileMenu">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-outline-primary d-lg-none" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#mobileUserMenu">
+                                <i class="bi bi-list"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu - chỉ hiển thị khi chưa đăng nhập -->
+            {% if not user.is_authenticated %}
+            <div class="collapse bg-white border-top" id="mobileMenu">
+                <div class="p-3">
+                    <nav class="d-flex flex-column gap-2">
+                        <a href="/" class="text-primary fw-semibold text-decoration-none py-1">Trang chủ</a>
+                        <a href="/about" class="text-primary fw-semibold text-decoration-none py-1">Giới thiệu</a>
+
+                        <!-- Mobile Dropdown: Chuyên khoa -->
+                        <div class="accordion" id="mobileSpecialtyAccordion">
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header">
+                                    <button
+                                        class="accordion-button collapsed bg-transparent text-primary fw-semibold p-0 py-1"
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#mobileSpecialty">
+                                        Chuyên khoa
+                                    </button>
+                                </h2>
+                                <div id="mobileSpecialty" class="accordion-collapse collapse"
+                                    data-bs-parent="#mobileSpecialtyAccordion">
+                                    <div class="accordion-body p-0 ps-3">
+                                        <a href="/specialty/cardiology"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-heart-pulse"></i> Tim mạch</a>
+                                        <a href="/specialty/neurology"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-brain"></i> Thần kinh</a>
+                                        <a href="/specialty/orthopedics"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-bone"></i> Cơ xương khớp</a>
+                                        <a href="/specialty/pediatrics"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-people"></i> Nhi khoa</a>
+                                        <a href="/specialty/gynecology"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-gender-female"></i> Sản phụ khoa</a>
+                                        <a href="/specialty/dermatology"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-droplet"></i> Da liễu</a>
+                                        <a href="/specialty/ophthalmology"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-eye"></i> Mắt</a>
+                                        <a href="/specialty/ent"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-ear"></i> Tai mũi họng</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Dropdown: Đội ngũ bác sĩ -->
+                        <div class="accordion" id="mobileDoctorsAccordion">
+                            <div class="accordion-item border-0">
+                                <h2 class="accordion-header">
+                                    <button
+                                        class="accordion-button collapsed bg-transparent text-primary fw-semibold p-0 py-1"
+                                        type="button" data-bs-toggle="collapse" data-bs-target="#mobileDoctors">
+                                        Đội ngũ bác sĩ
+                                    </button>
+                                </h2>
+                                <div id="mobileDoctors" class="accordion-collapse collapse"
+                                    data-bs-parent="#mobileDoctorsAccordion">
+                                    <div class="accordion-body p-0 ps-3">
+                                        <a href="/doctors/professors"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-award"></i> Giáo sư - Tiến sĩ</a>
+                                        <a href="/doctors/specialists"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-mortarboard"></i> Bác sĩ chuyên khoa</a>
+                                        <a href="/doctors/residents"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-person-badge"></i> Bác sĩ nội trú</a>
+                                        <a href="/doctors/consultants"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-chat-dots"></i> Bác sĩ tư vấn</a>
+                                        <hr class="my-2">
+                                        <a href="/doctors/schedule"
+                                            class="text-primary text-decoration-none py-1 d-block"><i
+                                                class="bi bi-calendar-check"></i> Lịch làm việc</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <a href="/lookup" class="text-primary fw-semibold text-decoration-none py-1">Tra cứu lịch
+                            hẹn</a>
+                        <a href="/contact" class="text-primary fw-semibold text-decoration-none py-1">Liên hệ</a>
+                    </nav>
+
+                    <div class="pt-3 border-top">
+                        <a href="{% url 'appointments:new_step1' %}" class="btn btn-appointment w-100 mb-3">
+                            Đặt lịch khám
+                        </a>
+                        <a href="{% url 'theme:login' %}" class="btn btn-login w-100">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            Đăng nhập
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Mobile User Actions - hiển thị khi đã đăng nhập -->
+            {% if user.is_authenticated %}
+            <div class="collapse bg-white border-top" id="mobileUserMenu">
+                <div class="p-3">
+                    <div class="pt-3 border-top">
+                        {% if IS_PATIENT %}
+                        <a href="{% url 'appointments:new_step1' %}" class="btn btn-appointment w-100 mb-2">
+                            <i class="bi bi-plus-circle"></i> Đặt lịch hẹn
+                        </a>
+                        <a href="{% url 'appointments:my_appointments' %}" class="btn btn-outline-primary w-100 mb-3">
+                            <i class="bi bi-calendar-check"></i> Lịch hẹn của tôi
+                        </a>
+                        {% elif IS_DOCTOR %}
+                        <a href="{% url 'appointments:schedule_index' %}" class="btn btn-appointment w-100 mb-2">
+                            <i class="bi bi-calendar-week"></i> Lịch làm việc
+                        </a>
+                        <a href="{% url 'appointments:appt_doctor_today' %}" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-list-check"></i> Danh sách khám hôm nay
+                        </a>
+                        <a href="{% url 'appointments:pending_appointments' %}" class="btn btn-outline-warning w-100 mb-3">
+                            <i class="bi bi-clock-history"></i> Lịch hẹn chờ xác nhận
+                        </a>
+                        {% elif IS_STAFF %}
+
+                        <a href="{% url 'billing:invoice_list' %}" class="btn btn-outline-primary w-100 mb-3">
+                            <i class="bi bi-receipt"></i> Hóa đơn
+                        </a>
+                        {% elif IS_ADMIN %}
+                        <a href="{% url 'adminpanel:dashboard' %}" class="btn btn-appointment w-100 mb-2">
+                            <i class="bi bi-speedometer2"></i> Admin Portal
+                        </a>
+                        <a href="/admin/" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-gear"></i> Django Admin
+                        </a>
+                        {% endif %}
+
+                        <div class="text-center mb-3">
+                            <span class="small text-muted">👤 {{ USER_FULL_NAME|default:user.username }} ({{ USER_ROLE_DISPLAY }})</span>
+                        </div>
+                        <a href="{% url 'theme:logout' %}" class="btn btn-login w-100">
+                            Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Message container will be created by JavaScript -->
+    <div id="message-container"></div>
+
+    <!-- Django Messages as JSON -->
+    {% if messages %}
+    <script type="application/json" id="django-messages">
+        [
+            {% for message in messages %}
+            {
+                "text": "{{ message|escapejs }}",
+                "type": "{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    </script>
+    {% endif %}
+
+
+    <!-- Footer
+    <footer class="bg-dark text-white py-4 py-md-5 mt-5">
+        <div class="container">
+            <div class="row g-3 g-md-4">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <h5 class="fw-semibold mb-2 mb-md-3">Bệnh viện Đại học Y Dược TP.HCM</h5>
+                    <p class="text-light small">Điều trị chuyên nghiệp - Nâng tầm Y Việt</p>
+                </div>
+                
+                <div class="col-12 col-sm-6 col-md-3">
+                    <h6 class="fw-semibold mb-2 mb-md-3">Liên kết nhanh</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-1"><a href="/" class="text-light text-decoration-none small">Giới thiệu</a></li>
+                        <li class="mb-1"><a href="/doctors" class="text-light text-decoration-none small">Chuyên khoa</a></li>
+                        <li class="mb-1"><a href="/doctors" class="text-light text-decoration-none small">Đội ngũ bác sĩ</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-12 col-sm-6 col-md-3">
+                    <h6 class="fw-semibold mb-2 mb-md-3">Dịch vụ</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-1"><a href="/appointments" class="text-light text-decoration-none small">Đăng ký khám</a></li>
+                        <li class="mb-1"><a href="/lookup" class="text-light text-decoration-none small">Tra cứu lịch hẹn</a></li>
+                        <li class="mb-1"><a href="tel:19006923" class="text-light text-decoration-none small">Tổng đài tư vấn</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-12 col-sm-6 col-md-3">
+                    <h6 class="fw-semibold mb-2 mb-md-3">Liên hệ</h6>
+                    <div class="text-light small">
+                        <p class="mb-1">📞 1900 6923</p>
+                        <p class="mb-1">📧 info@hospital.edu.vn</p>
+                        <p class="mb-0">📍 TP.HCM, Việt Nam</p>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-3 my-md-4">
+            <div class="text-center">
+                <p class="text-light small mb-0">&copy; 2024 Bệnh viện Đại học Y Dược TP.HCM. Tất cả quyền được bảo lưu.</p>
+            </div>
+        </div>
+    </footer> -->
+
+    <!-- Bootstrap JS -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/message-system.js' %}"></script>
+    <script src="{% static 'js/common-utils.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+
+</html>

@@ -1,0 +1,73 @@
+{% load vi_format %}
+{% load vi_labels %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Chi tiết hóa đơn</title>
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+</head>
+<body>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Hóa đơn #{{ inv.id }}</h4>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'staff:staff_invoice_print' inv.id %}">In hóa đơn</a>
+      {% if inv.status == "UNPAID" %}
+      <form method="post" action="{% url 'staff:staff_invoice_pay' inv.id %}">{% csrf_token %}
+        <button class="btn btn-success">Nhận tiền mặt</button>
+      </form>
+      {% else %}
+      <span class="{{ inv.status|invoice_badge }}">{{ inv.status|invoice_vi }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4"><strong>Bệnh nhân:</strong> {{ inv.appointment.patient.user.full_name }}</div>
+        <div class="col-md-4"><strong>Bác sĩ:</strong> {{ inv.appointment.doctor.user.full_name }}</div>
+        <div class="col-md-4"><strong>Ngày:</strong> {{ inv.appointment.appointment_at|date:"d/m/Y H:i" }}</div>
+        <div class="col-md-4"><strong>Phòng:</strong> {{ inv.appointment.doctor.room_number|default:"-" }}</div>
+        <div class="col-md-4"><strong>Trạng thái:</strong> <span class="{{ inv.status|invoice_badge }}">{{ inv.status|invoice_vi }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead class="table-light">
+        <tr>
+          <th>Diễn giải</th>
+          <th class="text-end">SL</th>
+          <th class="text-end">Đơn giá</th>
+          <th class="text-end">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for it in items %}
+        <tr>
+          <td>{{ it.description }}</td>
+          <td class="text-end">{{ it.quantity }}</td>
+          <td class="text-end">{{ it.unit_price|vnd }}</td>
+          <td class="text-end">{{ it.line_total_calc|vnd }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="3" class="text-end">Tổng cộng</th>
+          <th class="text-end">{{ total|vnd }}</th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <a href="{% url 'staff:staff_cashier' %}" class="btn btn-secondary mt-3">Về danh sách</a>
+</div>
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>
+
+

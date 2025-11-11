@@ -1,0 +1,91 @@
+{% extends "_print_base.html" %}
+
+{% block print_title %}Toa thuốc{% endblock %}
+
+{% block print_body %}
+  <!-- Clinic Header -->
+  <div class="clinic-header">
+    <h4 class="mb-1">PHÒNG KHÁM ĐẠI HỌC BÁCH KHOA ĐÀ NẴNG</h4>
+    <p class="mb-1">Địa chỉ: 54 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng</p>
+    <p class="mb-0">Điện thoại: (0236) 3731 111</p>
+  </div>
+
+  <h5 class="print-title">TOA THUỐC</h5>
+
+  <div class="info-section">
+    <div class="row g-2 small mb-3">
+      <div class="col-md-6"><strong>Bệnh nhân:</strong> {{ patient.user.full_name }}</div>
+      <div class="col-md-6"><strong>Ngày khám:</strong> {{ appointment.appointment_at|date:"d/m/Y H:i" }}</div>
+      <div class="col-md-6"><strong>Bác sĩ:</strong> 
+        {% if doctor.rank %}{{ doctor.rank }}.{% endif %} {{ doctor.user.full_name }}
+      </div>
+      <div class="col-md-6"><strong>Chuyên khoa:</strong> {{ doctor.specialty.name }}</div>
+      {% if patient.cccd %}
+      <div class="col-md-6"><strong>CCCD:</strong> {{ patient.cccd }}</div>
+      {% endif %}
+      {% if patient.date_of_birth %}
+      <div class="col-md-6"><strong>Ngày sinh:</strong> {{ patient.date_of_birth|date:"d/m/Y" }}</div>
+      {% endif %}
+      {% if patient.gender %}
+      <div class="col-md-6"><strong>Giới tính:</strong> 
+        {% if patient.gender == 'MALE' %}Nam
+        {% elif patient.gender == 'FEMALE' %}Nữ
+        {% else %}{{ patient.gender }}{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <table class="table table-sm">
+    <thead class="table-light">
+      <tr>
+        <th style="width: 5%;">#</th>
+        <th style="width: 30%;">Tên thuốc</th>
+        <th style="width: 20%;">Liều dùng</th>
+        <th style="width: 15%;">Số lượng</th>
+        <th style="width: 30%;">Hướng dẫn sử dụng</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prescription in prescriptions %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td><strong>{{ prescription.drug_name_snapshot }}</strong></td>
+        <td>{{ prescription.dosage|default:"-" }}</td>
+        <td>{{ prescription.quantity|floatformat:0 }} {{ prescription.unit_snapshot }}</td>
+        <td>
+          {% if prescription.frequency %}{{ prescription.frequency }}{% endif %}
+          {% if prescription.duration_days %} - {{ prescription.duration_days }} ngày{% endif %}
+          {% if prescription.notes %}<br><small>{{ prescription.notes }}</small>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center text-muted">Không có đơn thuốc.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Medical Advice (if any) -->
+  {% if medical_record.advice %}
+  <div class="mt-4 mb-4">
+    <h6><strong>Lời khuyên của bác sĩ:</strong></h6>
+    <div class="bordered-section">
+      {{ medical_record.advice|linebreaks }}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="signature-section">
+    <p><strong>Ngày {{ appointment.appointment_at|date:"d" }} tháng {{ appointment.appointment_at|date:"m" }} năm {{ appointment.appointment_at|date:"Y" }}</strong></p>
+    <p class="mb-1"><strong>Bác sĩ kê đơn</strong></p>
+    <div style="margin-top: 2rem; font-weight: 600;">
+      {% if doctor.rank %}{{ doctor.rank }}.{% endif %} {{ doctor.user.full_name }}
+    </div>
+  </div>
+
+  <div class="text-center mt-4 small text-muted">
+    Toa thuốc này chỉ có giá trị trong thời gian quy định. Vui lòng tuân thủ đúng liều lượng.
+  </div>
+{% endblock %}

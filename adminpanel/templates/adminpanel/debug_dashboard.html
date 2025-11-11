@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Dashboard Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .section { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard Data Debug</h1>
+    
+    <div class="section">
+        <h2>1. KPI Data</h2>
+        <p>Appointments Today: <strong>{{ appt_today }}</strong></p>
+        <p>Revenue Today: <strong>{{ revenue_today }}</strong> VND</p>
+        <p>Unpaid Invoices: <strong>{{ unpaid }}</strong></p>
+        <p>Active Doctors: <strong>{{ active_doctors }}</strong></p>
+    </div>
+    
+    <div class="section">
+        <h2>2. Chart Data - Visits</h2>
+        <p>Labels: <code>{{ chart_labels }}</code></p>
+        <p>Data: <code>{{ chart_appt }}</code></p>
+        <p class="{% if chart_appt %}success{% else %}error{% endif %}">
+            Total: {{ chart_appt|length }} items, Sum: {% widthratio chart_appt|join:"+" 1 1 %}
+        </p>
+    </div>
+    
+    <div class="section">
+        <h2>3. Chart Data - Revenue</h2>
+        <p>Labels: <code>{{ chart_labels }}</code></p>
+        <p>Data: <code>{{ chart_revenue }}</code></p>
+    </div>
+    
+    <div class="section">
+        <h2>4. JSON Script Elements Check</h2>
+        <pre id="json-check"></pre>
+    </div>
+    
+    <!-- JSON scripts -->
+    {{ chart_labels|json_script:"visit-labels" }}
+    {{ chart_labels|json_script:"revenue-labels" }}
+    {{ chart_appt|json_script:"visit-data" }}
+    {{ chart_revenue|json_script:"revenue-data" }}
+    
+    <script>
+        // Check if JSON script elements exist and are valid
+        const checks = [];
+        const ids = ['visit-labels', 'visit-data', 'revenue-labels', 'revenue-data'];
+        
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                try {
+                    const data = JSON.parse(el.textContent);
+                    checks.push(`✓ ${id}: OK (${JSON.stringify(data).substring(0, 100)}...)`);
+                } catch (e) {
+                    checks.push(`✗ ${id}: ERROR - ${e.message}`);
+                }
+            } else {
+                checks.push(`✗ ${id}: Element NOT FOUND`);
+            }
+        });
+        
+        document.getElementById('json-check').textContent = checks.join('\n');
+    </script>
+</body>
+</html>
+
+

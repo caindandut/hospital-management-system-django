@@ -1,0 +1,332 @@
+{% load static %}
+{% load vi_format %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phiếu Khám Bệnh - {{ patient.user.full_name }}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-icons.css' %}" rel="stylesheet">
+    
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .container { max-width: none !important; }
+            body { font-size: 12pt; }
+            .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; }
+        }
+        
+        .clinic-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .clinic-logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+        }
+        
+        .visit-summary-title {
+            color: #0d6efd;
+            font-weight: 700;
+            text-align: center;
+            margin: 2rem 0;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .info-card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .info-card .card-header {
+            background: #f8f9fa;
+            border-bottom: 2px solid #0d6efd;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        
+        .prescription-table th {
+            background: #0d6efd;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .prescription-table td {
+            vertical-align: middle;
+        }
+        
+        .total-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #0d6efd;
+            border-radius: 10px;
+            padding: 1.5rem;
+        }
+        
+        .signature-section {
+            margin-top: 3rem;
+            text-align: right;
+        }
+        
+        .doctor-signature {
+            margin-top: 2rem;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .print-btn {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="container my-4">
+        <!-- Clinic Header -->
+        <div class="clinic-header text-center">
+            <div class="d-flex align-items-center justify-content-center">
+                <div class="clinic-logo">
+                    <img src="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}" 
+                         alt="Logo" style="width: 60px; height: 60px;">
+                </div>
+                <div>
+                    <h2 class="mb-0">PHÒNG KHÁM ĐẠI HỌC BÁCH KHOA ĐÀ NẴNG</h2>
+                    <p class="mb-0">Địa chỉ: 54 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng</p>
+                    <p class="mb-0">Điện thoại: (0236) 3731 111</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Title -->
+        <h1 class="visit-summary-title">PHIẾU KHÁM BỆNH</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Patient Information -->
+                <div class="card info-card">
+                    <div class="card-header">
+                        <i class="bi bi-person-fill me-2"></i>Thông tin bệnh nhân
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="fw-bold" style="width: 40%;">Họ và tên:</td>
+                                <td>{{ patient.user.full_name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">CCCD:</td>
+                                <td>{{ patient.cccd|default:"Chưa cập nhật" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Ngày sinh:</td>
+                                <td>{{ patient.date_of_birth|date:"d/m/Y"|default:"Chưa cập nhật" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Giới tính:</td>
+                                <td>
+                                    {% if patient.gender == 'MALE' %}Nam
+                                    {% elif patient.gender == 'FEMALE' %}Nữ
+                                    {% else %}Chưa cập nhật{% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Số điện thoại:</td>
+                                <td>{{ patient.user.phone|default:"Chưa cập nhật" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <!-- Doctor Information -->
+                <div class="card info-card">
+                    <div class="card-header">
+                        <i class="bi bi-person-badge-fill me-2"></i>Thông tin bác sĩ
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="fw-bold" style="width: 40%;">Bác sĩ:</td>
+                                <td>
+                                    {% if doctor.rank %}{{ doctor.rank }}.{% endif %} {{ doctor.user.full_name }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Chuyên khoa:</td>
+                                <td>{{ doctor.specialty.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Phòng khám:</td>
+                                <td>{{ doctor.room_number|default:"Chưa cập nhật" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Thời gian khám:</td>
+                                <td>{{ appointment.appointment_at|date:"H:i, d/m/Y" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Medical Record -->
+        {% if medical_record %}
+        <div class="card info-card">
+            <div class="card-header">
+                <i class="bi bi-file-medical-fill me-2"></i>Kết quả khám bệnh
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary">Triệu chứng:</h6>
+                        <p>{{ medical_record.symptoms|default:"Không có ghi chú"|linebreaks }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-primary">Chuẩn đoán:</h6>
+                        <p>{{ medical_record.diagnosis|default:"Không có chuẩn đoán"|linebreaks }}</p>
+                    </div>
+                </div>
+                {% if medical_record.advice %}
+                <div class="mt-3">
+                    <h6 class="fw-bold text-primary">Lời khuyên:</h6>
+                    <p>{{ medical_record.advice|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Prescription -->
+        {% if prescriptions %}
+        <div class="card info-card">
+            <div class="card-header">
+                <i class="bi bi-prescription2 me-2"></i>Đơn thuốc
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped prescription-table">
+                        <thead>
+                            <tr>
+                                <th>STT</th>
+                                <th>Tên thuốc</th>
+                                <th>Liều dùng</th>
+                                <th>Số lượng</th>
+                                <th>Hướng dẫn sử dụng</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prescription in prescriptions %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-bold">{{ prescription.drug_name_snapshot }}</td>
+                                <td>{{ prescription.dosage|default:"-" }}</td>
+                                <td>{{ prescription.quantity|floatformat:0 }} {{ prescription.unit_snapshot }}</td>
+                                <td>
+                                    {% if prescription.frequency %}{{ prescription.frequency }}{% endif %}
+                                    {% if prescription.duration_days %} - {{ prescription.duration_days }} ngày{% endif %}
+                                    {% if prescription.notes %}<br><small class="text-muted">{{ prescription.notes }}</small>{% endif %}
+                                </td>
+                                <td class="text-end">{{ prescription.quantity|mul:prescription.unit_price_snapshot|floatformat:0|add_thousand_separator }} đ</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Total Cost Summary -->
+        <div class="total-section">
+            <h5 class="text-center text-primary mb-3">
+                <i class="bi bi-calculator me-2"></i>TỔNG CỘNG CHI PHI TẠM TÍNH
+            </h5>
+            <div class="row">
+                <div class="col-md-8">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="fw-bold">Phí khám bệnh:</td>
+                            <td class="text-end">{{ consultation_fee|floatformat:0|add_thousand_separator }} đ</td>
+                        </tr>
+                        {% if prescriptions %}
+                        <tr>
+                            <td class="fw-bold">Tiền thuốc:</td>
+                            <td class="text-end">{{ medication_total|floatformat:0|add_thousand_separator }} đ</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="border-top">
+                            <td class="fw-bold h5 text-primary">TỔNG CỘNG:</td>
+                            <td class="text-end fw-bold h5 text-primary">{{ grand_total|floatformat:0|add_thousand_separator }} đ</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center p-3" style="background: white; border-radius: 10px;">
+                        <h4 class="text-primary mb-0">{{ grand_total|floatformat:0|add_thousand_separator }} đ</h4>
+                        <small class="text-muted">Tổng cộng tạm tính</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <p><strong>Ngày {{ appointment.appointment_at|date:"d" }} tháng {{ appointment.appointment_at|date:"m" }} năm {{ appointment.appointment_at|date:"Y" }}</strong></p>
+            <p class="mb-1"><strong>Bác sĩ khám bệnh</strong></p>
+            <div class="doctor-signature">
+                {% if doctor.rank %}{{ doctor.rank }}.{% endif %} {{ doctor.user.full_name }}
+            </div>
+        </div>
+        
+        <!-- Footer Note -->
+        <div class="text-center mt-4 text-muted">
+            <small>
+                <i class="bi bi-info-circle me-1"></i>
+                Phiếu khám bệnh này chỉ có giá trị tham khảo. Vui lòng thanh toán tại quầy thu ngân.
+            </small>
+        </div>
+        
+        <!-- Back Button -->
+        <div class="text-center mt-4 no-print">
+            <a href="{% url 'appointments:appt_doctor_today' %}" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+            <a href="{% url 'doctors:visit_summary_print' appointment.id %}" class="btn btn-primary" target="_blank">
+                <i class="bi bi-printer"></i> In phiếu
+            </a>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

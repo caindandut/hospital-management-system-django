@@ -1,0 +1,230 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load static %}
+{% load media_extras %}
+{% load vi_format %}
+{% load vnd %}
+{% block title %}Nhân viên · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Quản lý nhân viên</h2>
+    <a href="{% url 'adminpanel:settings' %}?tab=users" class="btn btn-outline-primary">
+      <i class="bi bi-plus-circle me-1"></i>Tạo tài khoản
+    </a>
+  </div>
+
+  <!-- Search -->
+  <form method="get" class="mb-3">
+    <div class="row g-2">
+      <div class="col-md-8">
+        <input name="q" type="text" class="form-control" placeholder="Tìm theo tên, email, mã NV, CCCD..." value="{{ q }}">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Tìm kiếm</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Thông tin</th>
+            <th>Mã NV</th>
+            <th>Vị trí</th>
+            <th>Ca làm</th>
+            <th>Trạng thái</th>
+            <th>Ngày bắt đầu</th>
+            <th class="text-end">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in staff %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <img src="{% resolve_avatar_url user=s.user %}" class="rounded-circle" width="34" height="34" style="object-fit: cover;">
+                <div>
+                  <div class="fw-semibold">{{ s.user.full_name }}</div>
+                  <div class="text-muted small">{{ s.user.email }}</div>
+                  <div class="text-muted small">{{ s.user.phone|default:"-" }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ s.employee_code|default:"-" }}</td>
+            <td>{{ s.position|default:"-" }}</td>
+            <td>
+              {% if s.shift == 'MORNING' %}
+                <span class="badge bg-info-subtle text-info">Sáng</span>
+              {% elif s.shift == 'AFTERNOON' %}
+                <span class="badge bg-warning-subtle text-warning">Chiều</span>
+              {% elif s.shift == 'ROTATE' %}
+                <span class="badge bg-secondary-subtle text-secondary">Luân phiên</span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.user.is_active %}
+                <span class="badge bg-success-subtle text-success">Hoạt động</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Khóa</span>
+              {% endif %}
+            </td>
+            <td>{{ s.start_date|date:"d/m/Y"|default:"-" }}</td>
+            <td class="text-end">
+              <!-- Nút Sửa (mở modal) -->
+              <button class="btn btn-sm btn-outline-primary"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editStaffModal{{ s.id }}">
+                Sửa
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">
+              <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+              Chưa có nhân viên nào
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SỬA cho mỗi nhân viên -->
+{% for s in staff %}
+<div class="modal fade" id="editStaffModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'adminpanel:admin_staff_update' s.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Sửa thông tin nhân viên: {{ s.user.full_name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Họ và tên *</label>
+              <input name="full_name" class="form-control" value="{{ s.user.full_name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email *</label>
+              <input name="email" type="email" class="form-control" value="{{ s.user.email }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">SĐT</label>
+              <input name="phone" class="form-control" value="{{ s.user.phone|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mã nhân viên</label>
+              <input name="employee_code" class="form-control" value="{{ s.employee_code|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Giới tính</label>
+              <select name="gender" class="form-select">
+                <option value="">Chọn giới tính</option>
+                <option value="MALE" {% if s.gender == 'MALE' %}selected{% endif %}>Nam</option>
+                <option value="FEMALE" {% if s.gender == 'FEMALE' %}selected{% endif %}>Nữ</option>
+                <option value="OTHER" {% if s.gender == 'OTHER' %}selected{% endif %}>Khác</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ngày sinh</label>
+              <input name="date_of_birth" type="date" class="form-control" value="{{ s.date_of_birth|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">CCCD</label>
+              <input name="cccd" class="form-control" value="{{ s.cccd|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Địa chỉ</label>
+              <input name="address" class="form-control" value="{{ s.address|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vị trí</label>
+              <input name="position" class="form-control" value="{{ s.position|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ca làm việc</label>
+              <select name="shift" class="form-select">
+                <option value="">Chọn ca làm</option>
+                <option value="MORNING" {% if s.shift == 'MORNING' %}selected{% endif %}>Sáng</option>
+                <option value="AFTERNOON" {% if s.shift == 'AFTERNOON' %}selected{% endif %}>Chiều</option>
+                <option value="ROTATE" {% if s.shift == 'ROTATE' %}selected{% endif %}>Luân phiên</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ngày bắt đầu</label>
+              <input name="start_date" type="date" class="form-control" value="{{ s.start_date|date:'Y-m-d'|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Trạng thái</label>
+              <select name="status" class="form-select">
+                <option value="">Chọn trạng thái</option>
+                <option value="ACTIVE" {% if s.status == 'ACTIVE' %}selected{% endif %}>Hoạt động</option>
+                <option value="INACTIVE" {% if s.status == 'INACTIVE' %}selected{% endif %}>Không hoạt động</option>
+                <option value="ON_LEAVE" {% if s.status == 'ON_LEAVE' %}selected{% endif %}>Nghỉ phép</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Kích hoạt tài khoản</label>
+              <select name="is_active" class="form-select">
+                <option value="1" {% if s.user.is_active %}selected{% endif %}>Bật</option>
+                <option value="0" {% if not s.user.is_active %}selected{% endif %}>Tắt</option>
+              </select>
+            </div>
+
+            <div class="col-12"><hr></div>
+            <div class="col-md-6">
+              <label class="form-label">Mật khẩu mới (tuỳ chọn)</label>
+              <input name="password" type="password" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nhập lại mật khẩu</label>
+              <input name="confirm_password" type="password" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+          <button class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Password confirmation validation
+  const modals = document.querySelectorAll('[id^="editStaffModal"]');
+  modals.forEach(modal => {
+    const form = modal.querySelector('form');
+    const password = form.querySelector('input[name="password"]');
+    const confirmPassword = form.querySelector('input[name="confirm_password"]');
+    
+    function validatePasswordMatch() {
+      if (password.value !== confirmPassword.value) {
+        confirmPassword.setCustomValidity('Mật khẩu không khớp');
+      } else {
+        confirmPassword.setCustomValidity('');
+      }
+    }
+    
+    if (password && confirmPassword) {
+      password.addEventListener('input', validatePasswordMatch);
+      confirmPassword.addEventListener('input', validatePasswordMatch);
+    }
+  });
+});
+</script>
+
+{% endblock %}

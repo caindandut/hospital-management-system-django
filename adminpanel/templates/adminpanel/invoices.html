@@ -1,0 +1,50 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load vi_format vi_labels %}
+{% block title %}Hóa đơn · Admin{% endblock %}
+{% block content %}
+<div class="card card-soft p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Quản lý hóa đơn</h5>
+  </div>
+  
+  <form class="row g-2 align-items-end mb-3">
+    <div class="col-md-3">
+      <label class="form-label">Trạng thái</label>
+      <select name="status" class="form-select">
+        <option value="">Tất cả</option>
+        <option value="UNPAID" {% if request.GET.status == 'UNPAID' %}selected{% endif %}>Chờ thanh toán</option>
+        <option value="PAID" {% if request.GET.status == 'PAID' %}selected{% endif %}>Đã thanh toán</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Lọc</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th><th>Bệnh nhân</th><th>Bác sĩ</th><th>Ngày</th><th>Số tiền</th><th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in items %}
+        <tr>
+          <td>#{{ i.id }}</td>
+          <td>{{ i.appointment.patient.user.full_name }}</td>
+          <td>{{ i.appointment.doctor.user.full_name }}</td>
+          <td>{{ i.created_at|date:"d/m/Y H:i" }}</td>
+          <td class="fw-semibold">{{ i.amount_due|add_thousand_separator }} VNĐ</td>
+          <td>
+            <span class="{{ i.status|invoice_badge }}">{{ i.status|invoice_vi }}</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

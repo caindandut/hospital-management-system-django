@@ -1,0 +1,220 @@
+{% extends "adminpanel/base_admin.html" %}
+{% block title %}Bệnh nhân · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="mb-0">Quản lý bệnh nhân</h5>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="openCreate()"><i class="bi bi-plus-lg me-1"></i>Thêm</button>
+  </div>
+
+  <form class="row g-2 mb-3">
+    <div class="col-md-6">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Tìm theo tên, email hoặc CCCD">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-outline-secondary w-100">Tìm</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>STT</th>
+            <th>Họ tên</th>
+            <th>Email</th>
+            <th>CCCD</th>
+            <th>SĐT</th>
+            <th>Ngày sinh</th>
+            <th>Giới tính</th>
+            <th>Trạng thái</th>
+            <th class="text-end">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patients %}
+          <tr>
+            <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+            <td>{{ p.user.full_name }}</td>
+            <td>{{ p.user.email }}</td>
+            <td>{{ p.cccd }}</td>
+            <td>{{ p.user.phone|default:'-' }}</td>
+            <td>{% if p.date_of_birth %}{{ p.date_of_birth|date:'d/m/Y' }}{% else %}-{% endif %}</td>
+            <td>
+              {% if p.gender == 'MALE' %}Nam{% elif p.gender == 'FEMALE' %}Nữ{% else %}-{% endif %}
+            </td>
+            <td>{% if p.user.is_active %}<span class="badge bg-success-subtle text-success">Hoạt động</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Khóa</span>{% endif %}</td>
+            <td class="text-end">
+              <div class="btn-group">
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'adminpanel:admin_patients_list' %}?detail={{ p.user_id }}">Chi tiết</a>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'adminpanel:admin_patients_list' %}?edit={{ p.user_id }}">Sửa</a>
+                <form method="post" action="{% url 'adminpanel:admin_patient_delete' p.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa bệnh nhân này?')">Xóa</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted py-4">Chưa có bệnh nhân</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Create -->
+  <div class="modal fade" id="patientModal" tabindex="-1" aria-hidden="true"
+       data-open-create="{% if open_create_modal %}1{% else %}0{% endif %}"
+       data-open-edit="{% if open_edit_modal %}1{% else %}0{% endif %}">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <form id="patientForm" novalidate>
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="patientModalTitle">Thêm bệnh nhân</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Họ tên</label>
+                <input name="full_name" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Email</label>
+                <input name="email" type="email" class="form-control" required>
+              </div>
+              <div class="col-md-6" id="passwordGroup">
+                <label class="form-label">Mật khẩu</label>
+                <input name="password" type="password" class="form-control" placeholder="Để trống nếu không đổi">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">CCCD</label>
+                <input name="cccd" class="form-control" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">SĐT</label>
+                <input name="phone" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Ngày sinh</label>
+                <input name="date_of_birth" type="date" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Giới tính</label>
+                <select name="gender" class="form-select">
+                  <option value="">--</option>
+                  <option value="MALE">Nam</option>
+                  <option value="FEMALE">Nữ</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label">Địa chỉ</label>
+                <input name="address" class="form-control">
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="is_active" id="ckActivePatient" checked>
+                  <label class="form-check-label" for="ckActivePatient">Kích hoạt</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button class="btn btn-primary" type="submit">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const modalEl = document.getElementById('patientModal');
+    const modal = new bootstrap.Modal(modalEl);
+    const titleEl = document.getElementById('patientModalTitle');
+    const pwdGroup = document.getElementById('passwordGroup');
+    const shouldCreate = modalEl.getAttribute('data-open-create') === '1';
+    const shouldEdit = modalEl.getAttribute('data-open-edit') === '1';
+    if (shouldCreate) {
+      titleEl.textContent = 'Thêm bệnh nhân';
+      pwdGroup.style.display = '';
+      modal.show();
+    }
+    if (shouldEdit) {
+      titleEl.textContent = 'Sửa bệnh nhân';
+      pwdGroup.style.display = '';
+      modal.show();
+    }
+  });
+  </script>
+
+  <!-- Modal Detail (read-only) -->
+  {% if detail_user %}
+  <div class="modal fade" id="modalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Chi tiết bệnh nhân</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Họ tên</label><input class="form-control" value="{{ detail_user.full_name }}" disabled></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" value="{{ detail_user.email }}" disabled></div>
+            <div class="col-md-6"><label class="form-label">SĐT</label><input class="form-control" value="{{ detail_user.phone|default:'' }}" disabled></div>
+            <div class="col-md-6"><label class="form-label">CCCD</label><input class="form-control" value="{{ detail_profile.cccd }}" disabled></div>
+            <div class="col-md-6"><label class="form-label">Ngày sinh</label><input class="form-control" value="{% if detail_profile.date_of_birth %}{{ detail_profile.date_of_birth|date:'d/m/Y' }}{% endif %}" disabled></div>
+            <div class="col-md-6"><label class="form-label">Giới tính</label><input class="form-control" value="{% if detail_profile.gender == 'MALE' %}Nam{% elif detail_profile.gender == 'FEMALE' %}Nữ{% else %}-{% endif %}" disabled></div>
+            <div class="col-12"><label class="form-label">Địa chỉ</label><input class="form-control" value="{{ detail_profile.address|default:'' }}" disabled></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const el = document.getElementById('modalDetail');
+      const m = new bootstrap.Modal(el);
+      m.show();
+      // Xóa query ?detail= khỏi URL để F5 không tự bật lại modal
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '{% url 'adminpanel:admin_patients_list' %}');
+      }
+    });
+  </script>
+  {% endif %}
+
+  <!-- Modal Edit -->
+  {% if edit_form %}
+  <div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <form method="post" action="{% url 'adminpanel:admin_patient_edit' edit_id %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Sửa bệnh nhân</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            {{ edit_form.as_p }}
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+            <button class="btn btn-primary" type="submit">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>document.addEventListener('DOMContentLoaded', function(){ new bootstrap.Modal('#modalEdit').show(); });</script>
+  {% endif %}
+</div>
+{% endblock %}
+
+

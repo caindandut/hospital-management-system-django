@@ -1,0 +1,359 @@
+{% extends "adminpanel/base_admin.html" %}
+{% load vi_format %}
+{% block title %}Cấu hình · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <ul class="nav nav-pills mb-3">
+    <li class="nav-item"><a class="nav-link {% if tab == 'specialties' %}active{% endif %}" href="?tab=specialties">Chuyên khoa</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'rankfees' %}active{% endif %}" href="?tab=rankfees">Phí theo học vị</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'drugs' %}active{% endif %}" href="?tab=drugs">Thuốc</a></li>
+    <li class="nav-item"><a class="nav-link {% if tab == 'users' %}active{% endif %}" href="?tab=users">Người dùng & phân quyền</a></li>
+  </ul>
+
+  {% if tab == 'specialties' %}
+  <div class="card card-soft p-3">
+    <form method="post" action="{% url 'adminpanel:specialty_create' %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label class="form-label">Tên chuyên khoa</label>
+        <input name="name" class="form-control" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Mô tả</label>
+        <input name="description" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100">Thêm</button>
+      </div>
+    </form>
+    <hr>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light"><tr><th>Tên</th><th>Mô tả</th><th class="text-end">Thao tác</th></tr></thead>
+        <tbody>
+          {% for s in specialties %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td class="text-muted">{{ s.description|default:"-" }}</td>
+            <td class="text-end">
+              <!-- Nút Sửa (mở modal) -->
+              <button class="btn btn-sm btn-outline-primary me-1"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editSpecialtyModal{{ s.id }}">
+                Sửa
+              </button>
+              <form method="post" action="{% url 'adminpanel:specialty_delete' s.id %}" class="d-inline" onsubmit="return confirm('Xóa chuyên khoa này?')">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}<tr><td colspan="3" class="text-center text-muted">Chưa có dữ liệu.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if tab == 'rankfees' %}
+  <div class="card card-soft p-3">
+    <form method="post" action="{% url 'adminpanel:rankfee_create' %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-3">
+        <label class="form-label">Học vị</label>
+        <select name="rank" class="form-select" required>
+          <option value="BS">Bác sĩ</option>
+          <option value="ThS">Thạc sĩ</option>
+          <option value="TS">Tiến sĩ</option>
+          <option value="PGS">Phó GS</option>
+          <option value="GS">Giáo sư</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Phí mặc định</label>
+        <div class="input-group">
+          <input name="default_fee" type="text" inputmode="numeric" pattern="[0-9. ]*" class="form-control vnd-input" placeholder="0" required>
+          <span class="input-group-text">VND</span>
+        </div>
+      </div>
+      <div class="col-md-2"><button class="btn btn-primary w-100">Lưu</button></div>
+    </form>
+    <hr>
+    <table class="table align-middle">
+      <thead class="table-light"><tr><th>Học vị</th><th>Phí mặc định</th><th class="text-end">Thao tác</th></tr></thead>
+      <tbody>
+        {% for r in rankfees %}
+        <tr>
+          <td>{{ r.rank }}</td>
+          <td>{{ r.default_fee|vnd }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'adminpanel:rankfee_update' r.id %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="rank" value="{{ r.rank }}">
+              <div class="input-group d-inline-flex w-auto" style="min-width: 180px;">
+                <input type="text" name="default_fee" value="{{ r.default_fee|vnd|slice:':-4' }}" class="form-control vnd-input" inputmode="numeric" pattern="[0-9. ]*">
+                <span class="input-group-text">VND</span>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary">Cập nhật</button>
+            </form>
+            <form method="post" action="{% url 'adminpanel:rankfee_delete' r.id %}" class="d-inline" onsubmit="return confirm('Xóa mục này?')">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}<tr><td colspan="3" class="text-center text-muted">Chưa có dữ liệu.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if tab == 'rankfees' %}
+  <script>
+    // Format number as Vietnamese VND (thousand separator by dot) in text inputs with class vnd-input
+    (function(){
+      function unformat(v){ return (v||'').toString().replace(/[^0-9]/g,''); }
+      function format(v){
+        try{
+          const n = unformat(v);
+          if(!n) return '';
+          return Number(n).toLocaleString('vi-VN');
+        }catch(e){ return v; }
+      }
+      document.addEventListener('input', function(e){
+        if (!e.target.classList || !e.target.classList.contains('vnd-input')) return;
+        const caret = e.target.selectionStart;
+        const before = e.target.value;
+        const formatted = format(before);
+        e.target.value = formatted;
+        // best-effort keep caret at end
+        try{ e.target.setSelectionRange(formatted.length, formatted.length); }catch(err){}
+      });
+      document.addEventListener('submit', function(e){
+        // On submit, strip formatting so backend receives raw number
+        e.target.querySelectorAll && e.target.querySelectorAll('.vnd-input').forEach(function(inp){
+          inp.value = unformat(inp.value);
+        });
+      }, true);
+    })();
+  </script>
+  {% endif %}
+
+  {% if tab == 'drugs' %}
+  <div class="card card-soft p-3">
+    <form method="post" action="{% url 'adminpanel:drug_create' %}" class="row g-2 align-items-end">
+      {% csrf_token %}
+      <div class="col-md-2"><label class="form-label">Mã</label><input name="code" class="form-control"></div>
+      <div class="col-md-3"><label class="form-label">Tên</label><input name="name" class="form-control" required></div>
+      <div class="col-md-2"><label class="form-label">Đơn vị</label><input name="unit" class="form-control" required></div>
+      <div class="col-md-2"><label class="form-label">Đơn giá</label><input name="unit_price" type="number" step="100" min="0" class="form-control" required></div>
+      <div class="col-md-2"><label class="form-label">Số lượng</label><input name="quantity" type="number" min="0" class="form-control" value="0"></div>
+      <div class="col-md-2">
+        <label class="form-label">Kích hoạt</label>
+        <select name="is_active" class="form-select"><option value="1">Có</option><option value="0">Không</option></select>
+      </div>
+      <div class="col-md-1"><button class="btn btn-primary w-100">Thêm</button></div>
+    </form>
+    <hr>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light"><tr><th>Mã</th><th>Tên</th><th>ĐV</th><th>Đơn giá</th><th>Số lượng</th><th>Kích hoạt</th><th class="text-end">Thao tác</th></tr></thead>
+        <tbody>
+          {% for d in drugs %}
+          <tr>
+            <td>{{ d.code|default:"-" }}</td>
+            <td>{{ d.name }}</td>
+            <td>{{ d.unit }}</td>
+            <td>{{ d.unit_price|floatformat:0 }} VND</td>
+            <td>{{ d.quantity|default:0 }}</td>
+            <td>{% if d.is_active %}✔{% else %}✖{% endif %}</td>
+            <td class="text-end">
+              <!-- Nút Sửa (mở modal) -->
+              <button class="btn btn-sm btn-outline-primary me-1"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editDrugModal{{ d.id }}">
+                Sửa
+              </button>
+              <form method="post" action="{% url 'adminpanel:drug_delete' d.id %}" class="d-inline" onsubmit="return confirm('Xóa thuốc này?')">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}<tr><td colspan="6" class="text-center text-muted">Chưa có dữ liệu.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if tab == 'users' %}
+  <div class="card card-soft p-3 mb-3">
+    <div class="fw-semibold mb-2">Tạo tài khoản</div>
+    <form method="post" action="{% url 'adminpanel:user_create' %}" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-3">
+        <label class="form-label">Họ và tên</label>
+        <input name="full_name" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Email</label>
+        <input name="email" type="email" class="form-control" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">SĐT</label>
+        <input name="phone" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Vai trò</label>
+        <select name="role" class="form-select" required>
+          <option value="ADMIN">ADMIN</option>
+          <option value="DOCTOR">DOCTOR</option>
+          <option value="STAFF">STAFF</option>
+          <option value="PATIENT">PATIENT</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Kích hoạt</label>
+        <select name="is_active" class="form-select">
+          <option value="1">Bật</option>
+          <option value="0">Tắt</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Mật khẩu</label>
+        <input name="password" type="password" class="form-control" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Nhập lại mật khẩu</label>
+        <input name="password2" type="password" class="form-control" required>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100">Tạo</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card card-soft p-3">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light"><tr><th>Tên</th><th>Email</th><th>Điện thoại</th><th>Vai trò</th><th>Hoạt động</th><th class="text-end">Phân quyền</th></tr></thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.full_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.phone|default:"-" }}</td>
+            <td>{{ u.role }}</td>
+            <td>{% if u.is_active %}✔{% else %}✖{% endif %}</td>
+            <td class="text-end">
+              <!-- Chỉ cho phép chỉnh vai trò và bật/tắt, kèm nút Lưu -->
+              <form method="post" action="{% url 'adminpanel:user_update' u.id %}" class="d-inline">
+                {% csrf_token %}
+                <select name="role" class="form-select form-select-sm d-inline w-auto">
+                  <option value="ADMIN" {% if u.role == 'ADMIN' %}selected{% endif %}>ADMIN</option>
+                  <option value="DOCTOR" {% if u.role == 'DOCTOR' %}selected{% endif %}>DOCTOR</option>
+                  <option value="STAFF" {% if u.role == 'STAFF' %}selected{% endif %}>STAFF</option>
+                  <option value="PATIENT" {% if u.role == 'PATIENT' %}selected{% endif %}>PATIENT</option>
+                </select>
+                <select name="is_active" class="form-select form-select-sm d-inline w-auto">
+                  <option value="1" {% if u.is_active %}selected{% endif %}>Bật</option>
+                  <option value="0" {% if not u.is_active %}selected{% endif %}>Tắt</option>
+                </select>
+                <button class="btn btn-sm btn-success">Lưu</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}<tr><td colspan="6" class="text-center text-muted">Chưa có dữ liệu.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODAL SỬA cho mỗi chuyên khoa -->
+{% for s in specialties %}
+<div class="modal fade" id="editSpecialtyModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'adminpanel:specialty_update' s.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Sửa chuyên khoa: {{ s.name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Tên chuyên khoa *</label>
+              <input name="name" class="form-control" value="{{ s.name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mô tả</label>
+              <input name="description" class="form-control" value="{{ s.description|default:'' }}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+          <button class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- MODAL SỬA cho mỗi thuốc -->
+{% for d in drugs %}
+<div class="modal fade" id="editDrugModal{{ d.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'adminpanel:drug_update' d.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Sửa thuốc: {{ d.name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Mã thuốc</label>
+              <input name="code" class="form-control" value="{{ d.code|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tên thuốc *</label>
+              <input name="name" class="form-control" value="{{ d.name }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Đơn vị *</label>
+              <input name="unit" class="form-control" value="{{ d.unit }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Đơn giá (VND) *</label>
+              <input name="unit_price" type="number" step="100" min="0" class="form-control" value="{{ d.unit_price }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Số lượng</label>
+              <input name="quantity" type="number" min="0" class="form-control" value="{{ d.quantity|default:0 }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Kích hoạt</label>
+              <select name="is_active" class="form-select">
+                <option value="1" {% if d.is_active %}selected{% endif %}>Có</option>
+                <option value="0" {% if not d.is_active %}selected{% endif %}>Không</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Huỷ</button>
+          <button class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,197 @@
+{% load static %}
+{% load humanize %}
+{% load tz %}
+{% load vi_labels %}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Hóa đơn khám bệnh #{{ invoice.id }}</title>
+  <style>
+    body { 
+      font-family: Arial, Helvetica, sans-serif; 
+      color:#111; 
+      font-size:12px; 
+      line-height:1.4; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 20px;
+    }
+    .clinic-head { text-align:center; margin-bottom:8px; }
+    .clinic-head h1 { font-size:18px; margin:6px 0 3px; font-weight:bold; }
+    .clinic-head .sub { font-size:11px; color:#555; }
+    hr { border:0; height:2px; background:#2b6cb0; margin:10px 0 15px; }
+
+    h2.title { text-align:center; text-transform:uppercase; letter-spacing:.3px; margin:10px 0 20px; font-size:16px; font-weight:bold; }
+    
+    .invoice-info { 
+      display: flex; 
+      justify-content: space-between; 
+      margin-bottom: 15px; 
+      font-size: 12px; 
+    }
+    .info-group { 
+      flex: 1; 
+      margin-right: 20px; 
+    }
+    .info-group:last-child { 
+      margin-right: 0; 
+    }
+    .info-row { 
+      margin-bottom: 4px; 
+    }
+    .info-label { 
+      font-weight: bold; 
+      display: inline-block; 
+      width: 80px; 
+    }
+
+    table.bill { width:100%; border-collapse:collapse; margin-top:10px; }
+    table.bill th, table.bill td { border:1px solid #333; padding:6px 8px; font-size:12px; }
+    table.bill th { background:#f6f8ff; text-align:center; font-weight:bold; }
+    table.bill td.num { text-align:center; }
+    table.bill td:first-child { text-align:left; }
+    tr.total-row td { background:#e7f1ff; font-weight:bold; text-align:center; }
+    tr.total-row td:first-child { text-align:right; }
+
+    .footer { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-end; 
+      margin-top: 30px; 
+      font-size: 12px; 
+    }
+    .footer-date { 
+      flex: 1; 
+    }
+    .footer-signature { 
+      text-align: center; 
+      flex: 1; 
+    }
+    .footer-signature .cashier-name { 
+      margin-top: 40px; 
+      font-weight: bold; 
+    }
+    .thank-you { 
+      color:#666; 
+      font-size:11px; 
+      margin-top: 20px; 
+      text-align:center; 
+    }
+
+    .actions { position:fixed; right:16px; bottom:16px; display:flex; gap:8px; }
+    .btn { padding:8px 12px; border-radius:6px; border:1px solid #d0d7de; background:#f6f8fa; cursor:pointer; font-size:12px; }
+    .btn.primary { background:#0d6efd; color:#fff; border-color:#0d6efd; }
+    .btn:hover { filter:brightness(0.97); }
+
+    @media print {
+      .actions { display:none; }
+      @page { margin: 15mm; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="clinic-head">
+    <h1>{{ clinic.name|default:"PHÒNG KHÁM ĐẠI HỌC BÁCH KHOA ĐÀ NẴNG" }}</h1>
+    <div class="sub">
+      Địa chỉ: {{ clinic.address|default:"54 Nguyễn Lương Bằng, Liên Chiểu, Đà Nẵng" }} ·
+      Điện thoại: {{ clinic.phone|default:"(0236) 3731 111" }}
+    </div>
+  </div>
+  <hr>
+
+  <h2 class="title">HÓA ĐƠN KHÁM BỆNH</h2>
+
+  <div class="invoice-info">
+    <div class="info-group">
+      <div class="info-row">
+        <span class="info-label">Mã hóa đơn:</span> #{{ invoice.id }}
+      </div>
+      <div class="info-row">
+        <span class="info-label">Ngày in:</span> {% now "d/m/Y H:i" %}
+      </div>
+    </div>
+    <div class="info-group">
+      <div class="info-row">
+        <span class="info-label">Bệnh nhân:</span> {{ invoice.appointment.patient.user.full_name }}
+      </div>
+      {% if invoice.appointment.patient.cccd %}
+      <div class="info-row">
+        <span class="info-label">CCCD:</span> {{ invoice.appointment.patient.cccd }}
+      </div>
+      {% endif %}
+    </div>
+    <div class="info-group">
+      <div class="info-row">
+        <span class="info-label">Bác sĩ:</span> {{ invoice.appointment.doctor.user.full_name }}
+      </div>
+      <div class="info-row">
+        <span class="info-label">Chuyên khoa:</span> {{ invoice.appointment.doctor.specialty.name }}
+      </div>
+      {% if invoice.appointment.doctor.room_number %}
+      <div class="info-row">
+        <span class="info-label">Phòng khám:</span> {{ invoice.appointment.doctor.room_number }}
+      </div>
+      {% endif %}
+      <div class="info-row">
+        <span class="info-label">Trạng thái:</span> {{ invoice.status|invoice_vi }}
+      </div>
+    </div>
+  </div>
+
+  <table class="bill">
+    <thead>
+      <tr>
+        <th style="width:50%">Dịch vụ/Sản phẩm</th>
+        <th style="width:10%">SL</th>
+        <th style="width:20%">Đơn giá</th>
+        <th style="width:20%">Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td style="text-align:center">{{ line.quantity|floatformat:"0"|intcomma }}</td>
+        <td class="num">{{ line.unit_price|floatformat:"0"|intcomma }} VND</td>
+        <td class="num">
+          {% if line.line_total %}
+            {{ line.line_total|floatformat:"0"|intcomma }} VND
+          {% else %}
+            {% widthratio line.quantity 1 line.unit_price as line_total %}
+            {{ line_total|floatformat:"0"|intcomma }} VND
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" style="text-align:center; padding:16px">Không có dòng nào</td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td colspan="3" style="text-align:right">TỔNG CỘNG</td>
+        <td class="num">{{ invoice.amount_due|floatformat:"0"|intcomma }} VND</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    <div class="footer-date">
+      <strong>Ngày {% now "d" %} tháng {% now "m" %} năm {% now "Y" %}</strong>
+    </div>
+    <div class="footer-signature">
+      <div><strong>Thu ngân</strong></div>
+      <div class="cashier-name">{{ invoice.printed_by_user.full_name|default:"..................................." }}</div>
+    </div>
+  </div>
+
+  <div class="thank-you">Cảm ơn bạn đã tin tưởng dịch vụ của chúng tôi</div>
+
+  <div class="actions">
+    <button class="btn" onclick="history.back()">Quay lại</button>
+    <button class="btn primary" onclick="window.print()">In</button>
+  </div>
+</body>
+</html>

@@ -1,0 +1,142 @@
+{% extends "adminpanel/base_admin.html" %}
+{% block title %}Chi tiết lịch hẹn · Admin{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Chi tiết lịch hẹn</h5>
+    <a href="{% url 'adminpanel:appointments' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Quay lại
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <!-- Thông tin cơ bản -->
+    <div class="col-lg-8">
+      <div class="card card-soft p-3">
+        <h6 class="fw-semibold mb-3">Thông tin lịch hẹn</h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="text-muted me-2">ID:</div>
+              <div class="fw-medium">#{{ appointment.id }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="text-muted me-2">Thời gian:</div>
+              <div class="fw-medium">{{ appointment.appointment_at|date:"H:i d/m/Y" }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="text-muted me-2">Trạng thái:</div>
+              <div>
+                {% if appointment.status == "CONFIRMED" %}
+                  <span class="badge text-bg-primary">Đã xác nhận</span>
+                {% elif appointment.status == "IN_PROGRESS" %}
+                  <span class="badge text-bg-info">Đang khám</span>
+                {% elif appointment.status == "COMPLETED" %}
+                  <span class="badge text-bg-success">Đã khám</span>
+                {% elif appointment.status == "CANCELLED" %}
+                  <span class="badge text-bg-danger">Đã hủy</span>
+                {% elif appointment.status == "NO_SHOW" %}
+                  <span class="badge text-bg-warning text-dark">Không đến</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">Chờ xác nhận</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex">
+              <div class="text-muted me-2">Nguồn:</div>
+              <div>
+                {% if appointment.source == "WEB" %}
+                  <span class="badge text-bg-secondary">Web</span>
+                {% elif appointment.source == "BOT" %}
+                  <span class="badge text-bg-info">Chatbot</span>
+                {% elif appointment.source == "STAFF" %}
+                  <span class="badge text-bg-primary">Nhân viên</span>
+                {% else %}
+                  <span class="badge text-bg-light text-muted">Khác</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% if appointment.reason %}
+          <div class="col-12">
+            <div class="d-flex">
+              <div class="text-muted me-2">Lý do khám:</div>
+              <div>{{ appointment.reason }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Thông tin bệnh nhân -->
+    <div class="col-lg-4">
+      <div class="card card-soft p-3">
+        <h6 class="fw-semibold mb-3">Bệnh nhân</h6>
+        <div class="d-flex align-items-center mb-3">
+          <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width:40px;height:40px;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div>
+            <div class="fw-medium">{{ appointment.patient.user.full_name }}</div>
+            <div class="text-muted small">{{ appointment.patient.user.phone }}</div>
+          </div>
+        </div>
+        <div class="text-muted small">
+          <div class="mb-1">Email: {{ appointment.patient.user.email|default:"-" }}</div>
+          <div class="mb-1">CCCD: {{ appointment.patient.cccd|default:"-" }}</div>
+          <div>Ngày sinh: {{ appointment.patient.date_of_birth|date:"d/m/Y"|default:"-" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Thông tin bác sĩ -->
+    <div class="col-lg-4">
+      <div class="card card-soft p-3">
+        <h6 class="fw-semibold mb-3">Bác sĩ</h6>
+        <div class="d-flex align-items-center mb-3">
+          <div class="bg-success rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width:40px;height:40px;">
+            <i class="bi bi-person-badge"></i>
+          </div>
+          <div>
+            <div class="fw-medium">{{ appointment.doctor.user.full_name }}</div>
+            <div class="text-muted small">{{ appointment.doctor.specialty.name }}</div>
+          </div>
+        </div>
+        <div class="text-muted small">
+          <div class="mb-1">Số bằng: {{ appointment.doctor.license_number }}</div>
+          <div class="mb-1">Kinh nghiệm: {{ appointment.doctor.years_experience|default:"-" }} năm</div>
+          <div>Phòng: {{ appointment.doctor.room_number|default:"-" }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lịch sử thay đổi -->
+    <div class="col-lg-8">
+      <div class="card card-soft p-3">
+        <h6 class="fw-semibold mb-3">Lịch sử thay đổi</h6>
+        <div class="text-muted small">
+          <div class="mb-2">
+            <strong>Tạo lúc:</strong> {{ appointment.created_at|date:"H:i d/m/Y" }}
+          </div>
+          <div class="mb-2">
+            <strong>Cập nhật lần cuối:</strong> {{ appointment.updated_at|date:"H:i d/m/Y" }}
+          </div>
+          {% if appointment.chatbot_session %}
+          <div class="mb-2">
+            <strong>Phiên chatbot:</strong> #{{ appointment.chatbot_session.id }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

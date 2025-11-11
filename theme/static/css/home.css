@@ -1,0 +1,634 @@
+/* ========================================
+   DUT Hospital - Home Page Styles
+   ======================================== */
+
+/* Navigation Styles */
+.nav-underline {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background-color: #0d6efd;
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-link:hover .nav-underline {
+    width: 100%;
+}
+
+.nav-link {
+    padding: 0.5rem 1rem !important;
+    border-radius: 0.375rem;
+    font-weight: 500 !important;
+    transition: color 0.3s ease, background-color 0.3s ease !important;
+}
+
+.nav-link:hover {
+    font-weight: 500 !important;
+    color: #0a58ca !important;
+    background-color: rgba(13, 110, 253, 0.1);
+    transform: none !important;
+    font-size: inherit !important;
+}
+
+/* Dropdown Styles */
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-radius: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Dropdown delay for better UX */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+/* Mobile dropdown - keep click behavior */
+@media (max-width: 991px) {
+    .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        display: none;
+    }
+    
+    .dropdown.show .dropdown-menu {
+        display: block;
+    }
+}
+
+.dropdown-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0a58ca;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+/* Large Desktop (1200px+) */
+@media (max-width: 1200px) {
+    .nav-link {
+        padding: 0.4rem 0.6rem !important;
+        font-size: 0.85rem;
+    }
+}
+
+/* Desktop/Tablet (992px-1199px) */
+@media (max-width: 992px) {
+    .hospital-logo {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .hospital-name {
+        font-size: 1rem !important;
+    }
+    
+    .hospital-tagline {
+        font-size: 0.75rem !important;
+    }
+    
+    .nav-link {
+        padding: 0.3rem 0.5rem !important;
+        font-size: 0.8rem;
+    }
+}
+
+/* Tablet/Mobile Landscape (768px-991px) */
+@media (max-width: 768px) {
+    .hospital-logo {
+        width: 36px !important;
+        height: 36px !important;
+    }
+    
+    .hospital-name {
+        font-size: 0.9rem !important;
+    }
+    
+    .hospital-tagline {
+        font-size: 0.7rem !important;
+    }
+    
+    .action-buttons .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .action-buttons .btn .small {
+        font-size: 0.7rem;
+    }
+}
+
+/* Mobile Portrait (576px-767px) */
+@media (max-width: 576px) {
+    .hospital-logo {
+        width: 32px !important;
+        height: 32px !important;
+    }
+    
+    .hospital-name {
+        font-size: 0.8rem !important;
+    }
+    
+    .hospital-tagline {
+        font-size: 0.65rem !important;
+    }
+    
+    .action-buttons .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .action-buttons .btn .small {
+        font-size: 0.65rem;
+    }
+}
+
+/* Extra Small Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+    .hospital-logo {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .hospital-name {
+        font-size: 0.75rem !important;
+    }
+    
+    .action-buttons .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+    
+    .action-buttons {
+        gap: 0.25rem !important;
+    }
+}
+
+/* ========================================
+   Custom Typography
+   ======================================== */
+
+/* Responsive Display Classes */
+.display-md-4 {
+    font-size: 2.5rem;
+}
+
+.h5-md {
+    font-size: 1.25rem;
+}
+
+/* Typography Responsive Adjustments */
+@media (max-width: 768px) {
+    .display-md-4 {
+        font-size: 2rem;
+    }
+    
+    .h5-md {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .display-md-4 {
+        font-size: 1.75rem;
+    }
+    
+    .h5-md {
+        font-size: 1rem;
+    }
+}
+
+/* ========================================
+   Component Styles
+   ======================================== */
+
+/* Hospital Logo Container */
+.hospital-logo {
+    transition: all 0.3s ease;
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    flex-wrap: nowrap;
+}
+
+/* Navigation Responsive Improvements */
+@media (max-width: 1200px) {
+    .nav {
+        flex-wrap: nowrap;
+    }
+    
+    .nav-item {
+        flex-shrink: 1;
+    }
+}
+
+@media (max-width: 992px) {
+    .nav-link {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* Header Layout Improvements */
+.header-container {
+    min-height: 60px;
+    position: relative;
+}
+
+.header-container .d-flex {
+    min-height: inherit;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .header-container {
+        min-height: 50px;
+    }
+}
+
+@media (max-width: 576px) {
+    .header-container {
+        min-height: 45px;
+    }
+}
+
+/* Prevent Layout Shift */
+.action-buttons {
+    flex-shrink: 0;
+}
+
+.action-buttons .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Card Enhancements */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Footer Enhancements */
+footer {
+    background: linear-gradient(135deg, #212529 0%, #343a40 100%);
+}
+
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+/* Smooth Transitions */
+.smooth-transition {
+    transition: all 0.3s ease;
+}
+
+/* Text Shadow for Better Readability */
+.text-shadow {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom Button Styles */
+.btn-custom {
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   Custom Button Designs
+   ======================================== */
+
+/* Appointment Button - Prominent Design */
+.btn-appointment {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+    transition: all 0.3s ease;
+    min-width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+}
+
+.btn-appointment:hover {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.btn-appointment:active {
+    background: linear-gradient(135deg, #155724 0%, #0f5132 100%);
+}
+
+/* Login Button - Blue Design */
+.btn-login {
+    background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: white;
+    transition: all 0.3s ease;
+    min-width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);
+}
+
+/* User Button - Logged-in */
+.btn-user {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #0d6efd;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.btn-user:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.user-name {
+    max-width: none;
+    white-space: nowrap;
+}
+
+.user-dropdown .dropdown-menu {
+    right: 0;
+    left: auto;
+}
+
+/* Show user menu on hover (desktop) */
+.user-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Hide default caret on custom user button */
+.btn-user.dropdown-toggle::after {
+    display: none;
+}
+
+.btn-login i {
+    font-size: 1rem;
+}
+
+.btn-login:hover {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.btn-login:active {
+    background: linear-gradient(135deg, #0a58ca 0%, #4c0a9c 100%);
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.2);
+}
+
+/* Mobile Button Adjustments */
+@media (max-width: 768px) {
+    .btn-appointment {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        border-radius: 0.4rem;
+        height: 2.2rem;
+    }
+    
+    .btn-login {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        border-radius: 0.4rem;
+        height: 2.2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .btn-appointment {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.75rem;
+        border-radius: 0.35rem;
+        height: 2rem;
+    }
+    
+    .btn-login {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.75rem;
+        border-radius: 0.35rem;
+        height: 2rem;
+    }
+}
+
+/* Button Container Improvements */
+.action-buttons {
+    gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .action-buttons {
+        gap: 0.25rem;
+    }
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: none;
+    overflow: hidden;
+    animation: slideInFromRight 0.4s ease-out;
+    transform-origin: top right;
+    position: relative;
+    min-width: 300px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@keyframes slideInFromRight {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast.hide {
+    animation: slideOutToRight 0.3s ease-in forwards;
+}
+
+@keyframes slideOutToRight {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    color: white;
+    font-weight: 500;
+    position: relative;
+}
+
+.toast-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    margin-left: 12px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    transition: width linear;
+}
+
+/* Toast Types */
+.toast-success {
+    background: #10b981;
+}
+
+.toast-error {
+    background: #ef4444;
+}
+
+.toast-warning {
+    background: #f59e0b;
+}
+
+.toast-info {
+    background: #3b82f6;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .toast {
+        min-width: auto;
+        width: 100%;
+    }
+}

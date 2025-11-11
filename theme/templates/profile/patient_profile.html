@@ -1,0 +1,207 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <title>Hồ Sơ Bệnh Nhân - DUT Hospital</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}?v=1.3">
+</head>
+<body class="bg-light">
+    <!-- Message container will be created by JavaScript -->
+    <div id="message-container"></div>
+    
+    <!-- Django Messages as JSON -->
+    {% if messages %}
+    <script type="application/json" id="django-messages">
+        [
+            {% for message in messages %}
+            {
+                "text": "{{ message|escapejs }}",
+                "type": "{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    </script>
+    {% endif %}
+    <div class="container py-4 py-md-5 profile-wrap">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'theme:home' %}" class="text-decoration-none">
+                        <i class="bi bi-house-door"></i> Trang chủ
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    <i class="bi bi-person-circle"></i> Thông tin cá nhân
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Header Section -->
+        <div class="profile-header mb-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <h1 class="header-title">Thông Tin Cá Nhân - {{ request.user.get_full_name|default:request.user.username }}</h1>
+                <div class="header-actions">
+                    <button type="button" id="editToggleBtn" class="btn me-2" onclick="toggleEditMode()">
+                        <i class="bi bi-pencil-square"></i> Chỉnh sửa thông tin
+                    </button>
+                    <button type="submit" form="profileForm" id="saveBtn" class="btn me-2" style="display: none;">
+                        <i class="bi bi-check-circle"></i> Lưu
+                    </button>
+                    <button type="button" id="cancelBtn" class="btn me-2" onclick="cancelEdit()" style="display: none;">
+                        <i class="bi bi-x-circle"></i> Hủy
+                    </button>
+                    <a href="{% url 'theme:change_password' %}" class="btn">
+                        <i class="bi bi-shield-lock"></i> Đổi mật khẩu
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Sections -->
+        <form method="post" id="profileForm">
+            {% csrf_token %}
+            <div class="row g-4">
+                <!-- Section 1: Basic/Identification Information -->
+                <div class="col-12 col-lg-6">
+                    <div class="info-section basic-info">
+                        <div class="section-header">
+                            <i class="bi bi-person-badge"></i>
+                            <div class="section-title">
+                                <span class="section-name">1. Thông tin cơ bản / Định danh</span>
+                                <span class="section-description">Thông tin quan trọng để xác thực danh tính bệnh nhân</span>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <div class="form-group">
+                                <label class="form-label">Họ và tên</label>
+                                <input type="text" class="form-control" name="full_name" value="{{ request.user.get_full_name|default:'' }}" placeholder="Nhập họ và tên">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CCCD/CMND</label>
+                                <input type="text" class="form-control" name="cccd" value="{{ profile.cccd|default:'' }}" placeholder="Nhập số CCCD/CMND">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ngày sinh</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" name="date_of_birth" value="{{ profile.date_of_birth|date:'Y-m-d'|default:'' }}">
+                                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Giới tính</label>
+                                <select class="form-select" name="gender">
+                                    <option value="">-- Chọn giới tính --</option>
+                                    <option value="MALE" {% if profile.gender == 'MALE' %}selected{% endif %}>Nam</option>
+                                    <option value="FEMALE" {% if profile.gender == 'FEMALE' %}selected{% endif %}>Nữ</option>
+                                    <option value="OTHER" {% if profile.gender == 'OTHER' %}selected{% endif %}>Khác</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Nhóm máu</label>
+                                <select class="form-select" name="blood_type">
+                                    <option value="">-- Chọn nhóm máu --</option>
+                                    <option value="A" {% if profile.blood_type == 'A' %}selected{% endif %}>A</option>
+                                    <option value="B" {% if profile.blood_type == 'B' %}selected{% endif %}>B</option>
+                                    <option value="AB" {% if profile.blood_type == 'AB' %}selected{% endif %}>AB</option>
+                                    <option value="O" {% if profile.blood_type == 'O' %}selected{% endif %}>O</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Contact Information -->
+                <div class="col-12 col-lg-6">
+                    <div class="info-section contact-info">
+                        <div class="section-header">
+                            <i class="bi bi-telephone"></i>
+                            <div class="section-title">
+                                <span class="section-name">2. Thông tin liên hệ</span>
+                                <span class="section-description">Hỗ trợ phòng khám liên hệ khi cần</span>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <div class="form-group">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" name="phone" value="{{ profile.phone|default:'' }}" placeholder="Nhập số điện thoại">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" value="{{ request.user.email|default:'' }}" placeholder="Nhập địa chỉ email">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Địa chỉ</label>
+                                <textarea class="form-control" name="address" rows="3" placeholder="Nhập địa chỉ đầy đủ">{{ profile.address|default:'' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Medical & Insurance Information -->
+                <div class="col-12 col-lg-6">
+                    <div class="info-section medical-info">
+                        <div class="section-header">
+                            <i class="bi bi-heart-pulse"></i>
+                            <div class="section-title">
+                                <span class="section-name">3. Thông tin y tế & bảo hiểm</span>
+                                <span class="section-description">Giúp bác sĩ nắm rõ để kê đơn an toàn</span>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <div class="form-group">
+                                <label class="form-label">Số thẻ BHYT</label>
+                                <input type="text" class="form-control" name="insurance_number" value="{{ profile.insurance_number|default:'' }}" placeholder="Nhập số thẻ BHYT">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tiền sử dị ứng</label>
+                                <textarea class="form-control" name="allergies" rows="3" placeholder="Nhập thông tin dị ứng (nếu có)">{{ profile.allergies|default:'' }}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ghi chú y tế</label>
+                                <textarea class="form-control" name="notes" rows="3" placeholder="Nhập ghi chú y tế">{{ profile.notes|default:'' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Emergency Contact -->
+                <div class="col-12 col-lg-6">
+                    <div class="info-section emergency-info">
+                        <div class="section-header">
+                            <i class="bi bi-telephone-fill"></i>
+                            <div class="section-title">
+                                <span class="section-name">4. Liên hệ khẩn cấp</span>
+                                <span class="section-description">Thông tin liên hệ trong trường hợp khẩn cấp</span>
+                            </div>
+                        </div>
+                        <div class="section-content">
+                            <div class="form-group">
+                                <label class="form-label">Người liên hệ</label>
+                                <input type="text" class="form-control" name="emergency_contact_name" value="{{ profile.emergency_contact_name|default:'' }}" placeholder="Nhập tên người liên hệ khẩn cấp">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" name="emergency_contact_phone" value="{{ profile.emergency_contact_phone|default:'' }}" placeholder="Nhập số điện thoại khẩn cấp">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/message-system.js' %}"></script>
+    <script src="{% static 'js/profile.js' %}"></script>
+    <script src="{% static 'js/common-utils.js' %}"></script>
+    <script src="{% static 'js/profile-forms.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>
+
+        

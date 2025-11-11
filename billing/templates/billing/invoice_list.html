@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title|default:"Danh sách hóa đơn" }}</title>
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <h1 class="text-primary mb-3">{{ title|default:"Danh sách hóa đơn" }}</h1>
+    <div id="message-container"></div>
+    <div class="alert alert-info">Chức năng đang phát triển.</div>
+    <a href="{% url 'billing:staff_board' %}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
+    </div>
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/message-system.js' %}"></script>
+</body>
+</html>
+
+

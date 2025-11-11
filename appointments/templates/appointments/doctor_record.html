@@ -1,0 +1,229 @@
+{% load static %}
+{% load vi_labels %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hồ sơ khám bệnh</title>
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/bootstrap-icons.css' %}" rel="stylesheet">
+</head>
+<body class="home-page">
+    <div class="container py-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'appointments:appt_doctor_today' %}">
+                        <i class="bi bi-list"></i> Danh sách hôm nay
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Hồ sơ khám bệnh</li>
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h3><i class="bi bi-file-medical"></i> Hồ sơ khám bệnh</h3>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'appointments:appt_doctor_today' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <!-- Patient Info -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-person"></i> Thông tin bệnh nhân</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Họ tên:</strong><br>
+                            {{ appt.patient.user.full_name|default:'-' }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Ngày sinh:</strong><br>
+                            {{ appt.patient.date_of_birth|date:'d/m/Y'|default:'-' }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Giới tính:</strong><br>
+                            {% if appt.patient.gender == 'MALE' %}Nam
+                            {% elif appt.patient.gender == 'FEMALE' %}Nữ
+                            {% elif appt.patient.gender == 'OTHER' %}Khác
+                            {% else %}-{% endif %}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Điện thoại:</strong><br>
+                            {{ appt.patient.user.phone|default:'-' }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>CCCD:</strong><br>
+                            {{ appt.patient.cccd|default:'-' }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-calendar-event"></i> Thông tin ca khám</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <strong>Thời gian:</strong><br>
+                            {{ appt.appointment_at|date:'H:i - d/m/Y' }}
+                        </div>
+                        <div class="mb-2">
+                            <strong>Trạng thái:</strong><br>
+                            {% if appt.status == 'PENDING' %}
+                                <span class="badge bg-secondary">Chờ xác nhận</span>
+                            {% elif appt.status == 'CONFIRMED' %}
+                                <span class="badge bg-warning text-dark">{{ appt.status|appt_vi }}</span>
+                            {% elif appt.status == 'IN_PROGRESS' %}
+                                <span class="badge bg-primary">{{ appt.status|appt_vi }}</span>
+                            {% elif appt.status == 'COMPLETED' %}
+                                <span class="badge bg-success">{{ appt.status|appt_vi }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ appt.status|appt_vi }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="mb-0">
+                            <strong>Lý do khám:</strong><br>
+                            <div class="text-muted">{{ appt.reason|default:'-' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medical Record Form -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-clipboard-pulse"></i> Hồ sơ khám bệnh</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <!-- Triệu chứng -->
+                            <div class="mb-3">
+                                <label for="symptoms" class="form-label">
+                                    <i class="bi bi-thermometer-half"></i> Triệu chứng
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="symptoms" 
+                                    name="symptoms" 
+                                    rows="4" 
+                                    placeholder="Mô tả các triệu chứng của bệnh nhân..."
+                                >{{ mr.symptoms|default:'' }}</textarea>
+                            </div>
+
+                            <!-- Chẩn đoán -->
+                            <div class="mb-3">
+                                <label for="diagnosis" class="form-label">
+                                    <i class="bi bi-heart-pulse"></i> Chẩn đoán
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="diagnosis" 
+                                    name="diagnosis" 
+                                    rows="3" 
+                                    placeholder="Chẩn đoán bệnh..."
+                                >{{ mr.diagnosis|default:'' }}</textarea>
+                            </div>
+
+                            <!-- Lời dặn -->
+                            <div class="mb-4">
+                                <label for="advice" class="form-label">
+                                    <i class="bi bi-chat-text"></i> Lời dặn
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="advice" 
+                                    name="advice" 
+                                    rows="3" 
+                                    placeholder="Lời dặn cho bệnh nhân..."
+                                >{{ mr.advice|default:'' }}</textarea>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    {% if appt.status == 'IN_PROGRESS' %}
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-save"></i> Lưu hồ sơ
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    {% if mr and appt.status == 'IN_PROGRESS' %}
+                                        <a href="{% url 'appointments:appt_prescribe' appt.id %}" class="btn btn-warning">
+                                            <i class="bi bi-prescription2"></i> Kê đơn thuốc
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Show message if appointment is completed -->
+                        {% if appt.status == 'COMPLETED' %}
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Thông báo:</strong> Ca khám đã hoàn tất. Hồ sơ chỉ xem được, không thể chỉnh sửa.
+                            </div>
+                        {% endif %}
+
+                        <!-- Show message if no medical record yet -->
+                        {% if not mr and appt.status != 'COMPLETED' %}
+                            <div class="alert alert-warning mt-3">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>Chưa có hồ sơ:</strong> Vui lòng điền thông tin và lưu hồ sơ khám bệnh.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Medical History (if available) -->
+                {% if mr %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-clock-history"></i> Thông tin đã lưu</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">Lần cập nhật cuối:</small><br>
+                                <strong>{{ mr.created_at|date:'H:i - d/m/Y' }}</strong>
+                            </div>
+                            <div class="col-6 text-end">
+                                {% if appt.status == 'IN_PROGRESS' %}
+                                    <span class="badge bg-warning">Có thể chỉnh sửa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Chỉ xem</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>
