@@ -39,7 +39,10 @@ def admin_doctors_list(request):
     st = request.GET.get("status", "")
     qs = Doctors.objects.select_related("user", "specialty").all()
     if q:
-        qs = qs.filter(Q(user__full_name__icontains=q) | Q(user__email__icontains=q) | Q(license_number__icontains=q))
+        # Split search terms for better matching
+        terms = q.split()
+        for term in terms:
+            qs = qs.filter(Q(user__full_name__icontains=term) | Q(user__email__icontains=term) | Q(license_number__icontains=term))
     if sp:
         qs = qs.filter(specialty_id=sp)
     if st == "active":
@@ -541,10 +544,13 @@ def appointments(request):
     if source:
         qs = qs.filter(source=source)
     if q:
-        qs = qs.filter(
-            Q(patient__user__full_name__icontains=q) |
-            Q(patient__user__phone__icontains=q) |
-            Q(doctor__user__full_name__icontains=q)
+        # Split search terms for better matching
+        terms = q.split()
+        for term in terms:
+            qs = qs.filter(
+                Q(patient__user__full_name__icontains=term) |
+                Q(patient__user__phone__icontains=term) |
+                Q(doctor__user__full_name__icontains=term)
         )
 
     # Sort by appointment time
@@ -644,7 +650,10 @@ def patients_list(request):
     q = (request.GET.get("q", "") or "").strip()
     qs = PatientProfiles.objects.select_related("user").all().order_by("user__full_name")
     if q:
-        qs = qs.filter(Q(user__full_name__icontains=q) | Q(user__email__icontains=q) | Q(cccd__icontains=q) | Q(user__phone__icontains=q))
+        # Split search terms for better matching
+        terms = q.split()
+        for term in terms:
+            qs = qs.filter(Q(user__full_name__icontains=term) | Q(user__email__icontains=term) | Q(cccd__icontains=term) | Q(user__phone__icontains=term))
     paginator = Paginator(qs, 10)
     page_obj = paginator.get_page(request.GET.get("page") or 1)
     # KPI (nếu chưa có dữ liệu thì 0)
@@ -843,8 +852,11 @@ def admin_staff_list(request):
     q = (request.GET.get("q", "") or "").strip()
     qs = StaffProfiles.objects.select_related("user").all().order_by("user__full_name")
     if q:
-        qs = qs.filter(Q(user__full_name__icontains=q) | Q(user__email__icontains=q) | 
-                       Q(employee_code__icontains=q) | Q(cccd__icontains=q))
+        # Split search terms for better matching
+        terms = q.split()
+        for term in terms:
+            qs = qs.filter(Q(user__full_name__icontains=term) | Q(user__email__icontains=term) | 
+                           Q(employee_code__icontains=term) | Q(cccd__icontains=term))
     return render(request, "adminpanel/staff_list.html", {"staff": qs, "q": q})
 
 

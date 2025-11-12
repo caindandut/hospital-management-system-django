@@ -187,52 +187,6 @@
   {% endif %}
 
   {% if tab == 'users' %}
-  <div class="card card-soft p-3 mb-3">
-    <div class="fw-semibold mb-2">Tạo tài khoản</div>
-    <form method="post" action="{% url 'adminpanel:user_create' %}" class="row g-2">
-      {% csrf_token %}
-      <div class="col-md-3">
-        <label class="form-label">Họ và tên</label>
-        <input name="full_name" class="form-control" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Email</label>
-        <input name="email" type="email" class="form-control" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">SĐT</label>
-        <input name="phone" class="form-control">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Vai trò</label>
-        <select name="role" class="form-select" required>
-          <option value="ADMIN">ADMIN</option>
-          <option value="DOCTOR">DOCTOR</option>
-          <option value="STAFF">STAFF</option>
-          <option value="PATIENT">PATIENT</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Kích hoạt</label>
-        <select name="is_active" class="form-select">
-          <option value="1">Bật</option>
-          <option value="0">Tắt</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Mật khẩu</label>
-        <input name="password" type="password" class="form-control" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Nhập lại mật khẩu</label>
-        <input name="password2" type="password" class="form-control" required>
-      </div>
-      <div class="col-md-2 d-flex align-items-end">
-        <button class="btn btn-primary w-100">Tạo</button>
-      </div>
-    </form>
-  </div>
-
   <div class="card card-soft p-3">
     <div class="table-responsive">
       <table class="table align-middle">
