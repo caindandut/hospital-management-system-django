@@ -329,11 +329,11 @@
           if(data.ok){ 
             location.reload(); 
           } else { 
-            alert(data.msg || 'Lỗi không xác định'); 
+            // Error occurred 
           }
         } catch (error) {
           console.error('Request failed:', error);
-          alert('Có lỗi xảy ra khi gửi yêu cầu');
+          // Error occurred
         }
       });
     } else {
@@ -348,7 +348,7 @@
         const fd = new FormData(formEl);
         const res = await fetch(`{% url 'adminpanel:admin_doctor_update' 0 %}`.replace('/0/','/' + id + '/'), {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd});
         const data = await res.json();
-        if(data.ok){ location.reload(); } else { alert(data.msg || 'Không lưu được'); }
+        if(data.ok){ location.reload(); } else { /* Error occurred */ }
       });
     });
   })();

@@ -1,4 +1,5 @@
 {% extends "adminpanel/base_admin.html" %}
+{% load vnd %}
 {% block title %}Dashboard · Admin{% endblock %}
 
 {% block content %}
@@ -23,7 +24,7 @@
     <div class="col-md-3">
       <div class="card card-soft p-3">
         <div class="text-muted">Doanh thu hôm nay</div>
-        <div class="fs-2 fw-bold text-success">{{ revenue_today|floatformat:0|default:"0" }} VNĐ</div>
+        <div class="fs-2 fw-bold text-success">{{ revenue_today|vnd|default:"0 VNĐ" }}</div>
       </div>
     </div>
     <div class="col-md-3">

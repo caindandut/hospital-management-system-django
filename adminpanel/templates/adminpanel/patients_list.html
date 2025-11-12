@@ -48,11 +48,11 @@
             <td>{% if p.user.is_active %}<span class="badge bg-success-subtle text-success">Hoạt động</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Khóa</span>{% endif %}</td>
             <td class="text-end">
               <div class="btn-group">
-                <a class="btn btn-sm btn-outline-secondary" href="{% url 'adminpanel:admin_patients_list' %}?detail={{ p.user_id }}">Chi tiết</a>
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'adminpanel:admin_patients_list' %}?edit={{ p.user_id }}">Sửa</a>
+                <button class="btn btn-sm btn-outline-secondary" onclick="viewPatientDetail({{ p.user_id }})">Chi tiết</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editPatient({{ p.id }}, '{{ p.user.full_name|escapejs }}', '{{ p.user.email|escapejs }}', '{{ p.cccd|default:""|escapejs }}', '{{ p.user.phone|default:""|escapejs }}', '{% if p.date_of_birth %}{{ p.date_of_birth|date:"Y-m-d" }}{% endif %}', '{{ p.gender|default:"" }}', '{{ p.address|default:""|escapejs }}', {{ p.user.is_active|yesno:"true,false" }})">Sửa</button>
                 <form method="post" action="{% url 'adminpanel:admin_patient_delete' p.id %}" class="d-inline">
                   {% csrf_token %}
-                  <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa bệnh nhân này?')">Xóa</button>
+                  <button class="btn btn-sm btn-outline-danger">Xóa</button>
                 </form>
               </div>
             </td>
@@ -133,22 +133,122 @@
   </div>
 
   <script>
+  let currentPatientId = null;
+  let modal = null;
+  
+  function openCreate() {
+    currentPatientId = null;
+    document.getElementById('patientModalTitle').textContent = 'Thêm bệnh nhân';
+    document.getElementById('passwordGroup').style.display = '';
+    document.getElementById('patientForm').reset();
+    if (!modal) {
+      modal = new bootstrap.Modal(document.getElementById('patientModal'));
+    }
+    modal.show();
+  }
+  
+  function editPatient(id, fullName, email, cccd, phone, dob, gender, address, isActive) {
+    currentPatientId = id;
+    document.getElementById('patientModalTitle').textContent = 'Sửa bệnh nhân';
+    document.getElementById('passwordGroup').style.display = '';
+    
+    document.querySelector('[name="full_name"]').value = fullName;
+    document.querySelector('[name="email"]').value = email;
+    document.querySelector('[name="cccd"]').value = cccd;
+    document.querySelector('[name="phone"]').value = phone;
+    document.querySelector('[name="date_of_birth"]').value = dob;
+    document.querySelector('[name="gender"]').value = gender;
+    document.querySelector('[name="address"]').value = address;
+    document.querySelector('[name="is_active"]').checked = isActive;
+    
+    if (!modal) {
+      modal = new bootstrap.Modal(document.getElementById('patientModal'));
+    }
+    modal.show();
+  }
+  
+  function viewPatientDetail(userId) {
+    window.location.href = '{% url "adminpanel:admin_patients_list" %}?detail=' + userId;
+  }
+  
   document.addEventListener('DOMContentLoaded', function(){
     const modalEl = document.getElementById('patientModal');
-    const modal = new bootstrap.Modal(modalEl);
     const titleEl = document.getElementById('patientModalTitle');
     const pwdGroup = document.getElementById('passwordGroup');
+    const formEl = document.getElementById('patientForm');
     const shouldCreate = modalEl.getAttribute('data-open-create') === '1';
     const shouldEdit = modalEl.getAttribute('data-open-edit') === '1';
+    
+    // Handle form submit
+    formEl.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(formEl);
+      
+      let url, method;
+      if (currentPatientId) {
+        // Update
+        url = '{% url "adminpanel:admin_patient_update" 0 %}'.replace('/0/', '/' + currentPatientId + '/');
+        method = 'POST';
+      } else {
+        // Create - need to implement this endpoint
+        alert('Chức năng thêm bệnh nhân mới chưa được implement trong view. Vui lòng liên hệ admin.');
+        return;
+      }
+      
+      try {
+        const res = await fetch(url, {
+          method: method,
+          headers: {'X-CSRFToken': '{{ csrf_token }}'},
+          body: fd
+        });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert(data.message || 'Có lỗi xảy ra');
+        }
+      } catch (error) {
+        console.error(error);
+        alert('Có lỗi xảy ra khi lưu dữ liệu');
+      }
+    });
+    
     if (shouldCreate) {
+      currentPatientId = null;
       titleEl.textContent = 'Thêm bệnh nhân';
       pwdGroup.style.display = '';
       modal.show();
-    }
-    if (shouldEdit) {
+    } else if (shouldEdit) {
       titleEl.textContent = 'Sửa bệnh nhân';
       pwdGroup.style.display = '';
+      
+      // Load data into form
+      {% if edit_patient %}
+      console.log('Loading patient data...');
+      try {
+        document.querySelector('[name="full_name"]').value = '{{ edit_user.full_name|escapejs }}';
+        document.querySelector('[name="email"]').value = '{{ edit_user.email|escapejs }}';
+        document.querySelector('[name="cccd"]').value = '{{ edit_patient.cccd|default:""|escapejs }}';
+        document.querySelector('[name="phone"]').value = '{{ edit_user.phone|default:""|escapejs }}';
+        document.querySelector('[name="date_of_birth"]').value = '{% if edit_patient.date_of_birth %}{{ edit_patient.date_of_birth|date:"Y-m-d" }}{% endif %}';
+        document.querySelector('[name="gender"]').value = '{{ edit_patient.gender|default:"" }}';
+        document.querySelector('[name="address"]').value = '{{ edit_patient.address|default:""|escapejs }}';
+        document.querySelector('[name="is_active"]').checked = {{ edit_user.is_active|yesno:"true,false" }};
+        currentPatientId = {{ edit_patient.id }};
+        console.log('Patient data loaded, ID:', currentPatientId);
+      } catch (error) {
+        console.error('Error loading patient data:', error);
+      }
+      {% else %}
+      console.log('No edit_patient data available');
+      {% endif %}
+      
       modal.show();
+      
+      // Remove query param from URL
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '{% url 'adminpanel:admin_patients_list' %}');
+      }
     }
   });
   </script>
@@ -190,30 +290,6 @@
   </script>
   {% endif %}
 
-  <!-- Modal Edit -->
-  {% if edit_form %}
-  <div class="modal fade" id="modalEdit" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <form method="post" action="{% url 'adminpanel:admin_patient_edit' edit_id %}">
-          {% csrf_token %}
-          <div class="modal-header">
-            <h5 class="modal-title">Sửa bệnh nhân</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            {{ edit_form.as_p }}
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-            <button class="btn btn-primary" type="submit">Lưu</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  <script>document.addEventListener('DOMContentLoaded', function(){ new bootstrap.Modal('#modalEdit').show(); });</script>
-  {% endif %}
 </div>
 {% endblock %}
 

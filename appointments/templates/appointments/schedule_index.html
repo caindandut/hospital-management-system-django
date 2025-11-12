@@ -411,7 +411,7 @@
                                             <form method="post" action="{% url 'appointments:schedule_close' schedule.id %}" class="d-inline">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-sm btn-soft-danger" 
-                                                        onclick="return confirm('Bạn có chắc muốn đóng khung lịch này?')">
+                                                        >
                                                     <i class="bi bi-lock me-1"></i>Đóng
                                                 </button>
                                             </form>
@@ -462,7 +462,6 @@
             
             if (startTime && endTime && startTime >= endTime) {
                 e.preventDefault();
-                alert('Giờ bắt đầu phải nhỏ hơn giờ kết thúc!');
                 return false;
             }
         });

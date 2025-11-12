@@ -44,7 +44,7 @@
                       data-bs-target="#editSpecialtyModal{{ s.id }}">
                 Sửa
               </button>
-              <form method="post" action="{% url 'adminpanel:specialty_delete' s.id %}" class="d-inline" onsubmit="return confirm('Xóa chuyên khoa này?')">
+              <form method="post" action="{% url 'adminpanel:specialty_delete' s.id %}" class="d-inline">
                 {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
               </form>
             </td>
@@ -97,7 +97,7 @@
               </div>
               <button class="btn btn-sm btn-outline-secondary">Cập nhật</button>
             </form>
-            <form method="post" action="{% url 'adminpanel:rankfee_delete' r.id %}" class="d-inline" onsubmit="return confirm('Xóa mục này?')">
+            <form method="post" action="{% url 'adminpanel:rankfee_delete' r.id %}" class="d-inline">
               {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
             </form>
           </td>
@@ -174,7 +174,7 @@
                       data-bs-target="#editDrugModal{{ d.id }}">
                 Sửa
               </button>
-              <form method="post" action="{% url 'adminpanel:drug_delete' d.id %}" class="d-inline" onsubmit="return confirm('Xóa thuốc này?')">
+              <form method="post" action="{% url 'adminpanel:drug_delete' d.id %}" class="d-inline">
                 {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Xóa</button>
               </form>
             </td>

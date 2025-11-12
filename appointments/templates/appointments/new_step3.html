@@ -355,14 +355,14 @@
                 
                 if (!reason) {
                     e.preventDefault();
-                    alert('Vui lòng nhập lý do khám!');
+                    // Validation failed
                     reasonTextarea.focus();
                     return false;
                 }
                 
                 if (reason.length < 10) {
                     e.preventDefault();
-                    alert('Lý do khám phải có ít nhất 10 ký tự!');
+                    // Validation failed
                     reasonTextarea.focus();
                     return false;
                 }

@@ -222,12 +222,32 @@ def _get_dashboard_context(request):
         from decimal import Decimal
         
         appt_today = Appointments.objects.filter(appointment_at__range=(today_start, today_end)).count()
-        revenue_today = (
-            Invoices.objects.filter(created_at__range=(today_start, today_end), status="PAID")
-            .aggregate(total=Coalesce(Sum("amount_due"), V(0, output_field=DecimalField())))
-            .get("total")
-            or Decimal(0)
-        )
+        
+        # Revenue today - check payment date OR (no payments and created today)
+        paid_today_qs = Invoices.objects.filter(
+            status='PAID'
+        ).filter(
+            Q(payments__paid_at__gte=today_start, payments__paid_at__lte=today_end) | 
+            Q(payments__isnull=True, created_at__gte=today_start, created_at__lte=today_end)
+        ).distinct()
+        
+        # Get invoice IDs and calculate total from items
+        paid_today_ids = list(paid_today_qs.values_list('id', flat=True))
+        if paid_today_ids:
+            revenue_today = InvoiceItems.objects.filter(
+                invoice_id__in=paid_today_ids
+            ).aggregate(
+                total=Coalesce(
+                    Sum(
+                        F('quantity') * F('unit_price'),
+                        output_field=DecimalField(max_digits=12, decimal_places=2)
+                    ),
+                    V(0, output_field=DecimalField())
+                )
+            ).get('total') or Decimal(0)
+        else:
+            revenue_today = Decimal(0)
+        
         unpaid = Invoices.objects.filter(status="UNPAID").count()
         active_doctors = Doctors.objects.filter(user__is_active=1).count()
 
@@ -247,17 +267,27 @@ def _get_dashboard_context(request):
             appt_map[local_date] = appt_map.get(local_date, 0) + 1
 
         # 4) Revenue by day - group by local date (not UTC!)
+        # Get paid invoices in range with their payment dates
         invoices_in_range = Invoices.objects.filter(
-            created_at__range=(date_from_start, today_end), 
             status="PAID"
-        )
+        ).filter(
+            Q(payments__paid_at__gte=date_from_start, payments__paid_at__lte=today_end) |
+            Q(payments__isnull=True, created_at__gte=date_from_start, created_at__lte=today_end)
+        ).distinct().select_related().prefetch_related('items', 'payments')
         
         rev_map = {}
         for inv in invoices_in_range:
-            # Convert to local timezone, then extract date
-            local_dt = inv.created_at.astimezone(local_tz)
+            # Use payment date if available, otherwise creation date
+            payment = inv.payments.first()
+            if payment:
+                local_dt = payment.paid_at.astimezone(local_tz)
+            else:
+                local_dt = inv.created_at.astimezone(local_tz)
             local_date = local_dt.date()
-            rev_map[local_date] = rev_map.get(local_date, 0.0) + float(inv.amount_due or 0)
+            
+            # Calculate total from items instead of amount_due
+            items_total = sum(float(item.quantity * item.unit_price) for item in inv.items.all())
+            rev_map[local_date] = rev_map.get(local_date, 0.0) + items_total
 
         # 5) Build continuous labels and series (fill zero for missing days)
         chart_labels = []
@@ -775,7 +805,36 @@ def admin_patients_list(request):
     qs = PatientProfiles.objects.select_related("user").all().order_by("user__full_name")
     if q:
         qs = qs.filter(Q(user__full_name__icontains=q) | Q(user__email__icontains=q) | Q(cccd__icontains=q))
-    return render(request, "adminpanel/patients_list.html", {"patients": qs, "q": q})
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+    
+    context = {"patients": page_obj, "page_obj": page_obj, "q": q}
+    
+    # Handle detail view
+    detail_id = request.GET.get("detail")
+    if detail_id:
+        try:
+            detail_profile = PatientProfiles.objects.select_related("user").get(user_id=detail_id)
+            context["detail_user"] = detail_profile.user
+            context["detail_profile"] = detail_profile
+        except PatientProfiles.DoesNotExist:
+            pass
+    
+    # Handle edit view
+    edit_id = request.GET.get("edit")
+    if edit_id:
+        try:
+            edit_profile = PatientProfiles.objects.select_related("user").get(user_id=edit_id)
+            context["edit_patient"] = edit_profile
+            context["edit_user"] = edit_profile.user
+            context["open_edit_modal"] = True
+        except PatientProfiles.DoesNotExist:
+            pass
+    
+    return render(request, "adminpanel/patients_list.html", context)
 
 
 @login_required
@@ -988,15 +1047,7 @@ def invoice_list(request):
     qs = (
         Invoices.objects
         .select_related('appointment__patient__user', 'appointment__doctor__user')
-        .annotate(
-            total=Coalesce(
-                Sum(
-                    F('items__quantity') * F('items__unit_price'),
-                    output_field=DecimalField(max_digits=12, decimal_places=2)
-                ),
-                V(0, output_field=DecimalField(max_digits=12, decimal_places=2))
-            )
-        ).order_by('-created_at')
+        .order_by('-created_at')
     )
 
     status = request.GET.get('status')
@@ -1007,10 +1058,27 @@ def invoice_list(request):
         qs = qs.filter(appointment__doctor_id=doctor_id)
     q = request.GET.get('q')
     if q:
-        qs = qs.filter(
-            Q(appointment__patient__user__full_name__icontains=q) |
-            Q(appointment__patient__cccd__icontains=q)
+        # Split search terms and search for each word in full_name or cccd
+        search_terms = q.strip().split()
+        if search_terms:
+            # Build query to match all terms
+            query = Q()
+            for term in search_terms:
+                query &= Q(appointment__patient__user__full_name__icontains=term)
+            # OR search in CCCD
+            query |= Q(appointment__patient__cccd__icontains=q)
+            qs = qs.filter(query)
+    
+    # Add annotation after filters to calculate total from items
+    qs = qs.annotate(
+        total=Coalesce(
+            Sum(
+                F('items__quantity') * F('items__unit_price'),
+                output_field=DecimalField(max_digits=12, decimal_places=2)
+            ),
+            V(0, output_field=DecimalField(max_digits=12, decimal_places=2))
         )
+    )
     date_from = request.GET.get('from')
     date_to = request.GET.get('to')
     if date_from:
@@ -1020,31 +1088,99 @@ def invoice_list(request):
 
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
+    
+    # Get list of doctors for filter dropdown
+    doctors_list = Doctors.objects.select_related('user').filter(user__is_active=True).order_by('user__full_name')
 
+    from zoneinfo import ZoneInfo
+    local_tz = ZoneInfo('Asia/Ho_Chi_Minh')
     today = localdate()
-    unpaid_today = Invoices.objects.filter(status='UNPAID', created_at__date=today).count()
-    paid_today = Invoices.objects.filter(status='PAID', created_at__date=today).count()
-    revenue_today = Invoices.objects.filter(status='PAID', created_at__date=today).aggregate(
-        s=Coalesce(
-            Sum('amount_due', output_field=DecimalField(max_digits=12, decimal_places=2)),
-            V(0, output_field=DecimalField(max_digits=12, decimal_places=2))
-        )
-    )['s']
+    
+    # Get timezone-aware datetime range for today
+    from datetime import datetime, time as dt_time
+    today_start = timezone.make_aware(datetime.combine(today, dt_time.min), local_tz)
+    today_end = timezone.make_aware(datetime.combine(today, dt_time.max), local_tz)
+    
+    unpaid_today = Invoices.objects.filter(
+        status='UNPAID', 
+        created_at__gte=today_start,
+        created_at__lte=today_end
+    ).count()
+    
+    # Count invoices paid today - check payment datetime range OR (no payments and created today)
+    paid_today_qs = Invoices.objects.filter(
+        status='PAID'
+    ).filter(
+        Q(payments__paid_at__gte=today_start, payments__paid_at__lte=today_end) | 
+        Q(payments__isnull=True, created_at__gte=today_start, created_at__lte=today_end)
+    ).distinct()
+    paid_today = paid_today_qs.count()
+    
+    # Revenue today - calculate total from items for invoices paid today
+    # Get invoice IDs first to avoid join issues
+    paid_today_ids = list(paid_today_qs.values_list('id', flat=True))
+    
+    if paid_today_ids:
+        revenue_today = InvoiceItems.objects.filter(
+            invoice_id__in=paid_today_ids
+        ).aggregate(
+            s=Coalesce(
+                Sum(
+                    F('quantity') * F('unit_price'),
+                    output_field=DecimalField(max_digits=12, decimal_places=2)
+                ),
+                V(0, output_field=DecimalField(max_digits=12, decimal_places=2))
+            )
+        )['s']
+    else:
+        revenue_today = 0
 
     return render(request, 'adminpanel/billing/invoices_list.html', {
         'page_obj': page_obj,
         'unpaid_today': unpaid_today,
         'paid_today': paid_today,
         'revenue_today': revenue_today,
+        'doctors_list': doctors_list,
     })
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def invoice_cash(request, pk):
     inv = get_object_or_404(Invoices, pk=pk, status='UNPAID')
+    
+    # Calculate total from items
+    from django.db.models import ExpressionWrapper
+    total = InvoiceItems.objects.filter(invoice=inv).aggregate(
+        t=Sum(ExpressionWrapper(F("quantity") * F("unit_price"),
+                                output_field=DecimalField(max_digits=12, decimal_places=2)))
+    )["t"] or 0
+    
+    # Get current user
+    user = request.user
+    # Try to get Users instance from accounts
+    try:
+        ext_user = Users.objects.get(pk=user.pk)
+    except Users.DoesNotExist:
+        ext_user = user
+    
+    # Create payment record
+    Payments.objects.create(
+        invoice=inv,
+        amount=total,
+        method="CASH",
+        paid_at=timezone.now(),
+        received_by_user=ext_user,
+        note=None,
+    )
+    
+    # Update invoice status
     inv.status = 'PAID'
-    inv.save(update_fields=['status'])
+    inv.amount_due = 0
+    inv.subtotal = total
+    inv.save(update_fields=['status', 'amount_due', 'subtotal'])
+    
     messages.success(request, f'Đã nhận tiền mặt cho hóa đơn #{inv.id:05d}.')
     return redirect('adminpanel:admin_invoice_list')
 

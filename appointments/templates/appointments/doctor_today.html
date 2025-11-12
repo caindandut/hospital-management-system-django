@@ -1,4 +1,5 @@
 {% load static %}
+{% load tz %}
 {% load vi_labels %}
 <!DOCTYPE html>
 <html lang="vi">
@@ -233,9 +234,20 @@
                                                 </button>
                                             </form>
                                             <!-- Chi tiết -->
-                                            <a href="{% url 'appointments:appointment_detail' appt.id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm mt-1"
+                                                    data-bs-toggle="modal" data-bs-target="#apptDetailModal"
+                                                    data-patient="{{ appt.patient.user.full_name }}"
+                                                    data-doctor="{{ appt.doctor.user.full_name }}"
+                                                    data-spec="{{ appt.doctor.specialty.name }}"
+                                                    data-date="{{ appt.appointment_at|date:'Y-m-d' }}"
+                                                    data-datehuman="{{ appt.appointment_at|date:'d/m/Y' }}"
+                                                    data-time="{{ appt.appointment_at|localtime|time:'H:i' }}"
+                                                    data-duration="{{ appt.schedule.slot_duration_minutes }}"
+                                                    data-room="{{ appt.doctor.room_number|default:'Chưa cập nhật' }}"
+                                                    data-status="{{ appt.status }}"
+                                                    data-reason="{{ appt.reason|default:'' }}">
                                                 <i class="bi bi-eye"></i> Chi tiết
-                                            </a>
+                                            </button>
                                         {% elif appt.status == 'CONFIRMED' %}
                                             <!-- Bắt đầu khám -->
                                             <form method="post" action="{% url 'appointments:appt_start' appt.id %}" class="d-inline">
@@ -245,9 +257,20 @@
                                                 </button>
                                             </form>
                                             <!-- Chi tiết -->
-                                            <a href="{% url 'appointments:appointment_detail' appt.id %}" class="btn btn-outline-secondary btn-sm mt-1">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm mt-1"
+                                                    data-bs-toggle="modal" data-bs-target="#apptDetailModal"
+                                                    data-patient="{{ appt.patient.user.full_name }}"
+                                                    data-doctor="{{ appt.doctor.user.full_name }}"
+                                                    data-spec="{{ appt.doctor.specialty.name }}"
+                                                    data-date="{{ appt.appointment_at|date:'Y-m-d' }}"
+                                                    data-datehuman="{{ appt.appointment_at|date:'d/m/Y' }}"
+                                                    data-time="{{ appt.appointment_at|localtime|time:'H:i' }}"
+                                                    data-duration="{{ appt.schedule.slot_duration_minutes }}"
+                                                    data-room="{{ appt.doctor.room_number|default:'Chưa cập nhật' }}"
+                                                    data-status="{{ appt.status }}"
+                                                    data-reason="{{ appt.reason|default:'' }}">
                                                 <i class="bi bi-eye"></i> Chi tiết
-                                            </a>
+                                            </button>
                                         {% elif appt.status == 'IN_PROGRESS' %}
                                             <!-- Hồ sơ khám -->
                                             <a href="{% url 'appointments:appt_record' appt.id %}" class="btn btn-info btn-sm">
@@ -260,7 +283,7 @@
                                             <!-- Hoàn tất ca -->
                                             <form method="post" action="{% url 'appointments:appt_complete' appt.id %}" class="d-inline mt-1">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Hoàn tất ca khám này?')">
+                                                <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bi bi-check-circle"></i> Hoàn tất ca
                                                 </button>
                                             </form>
@@ -279,9 +302,20 @@
                                             </a>
                                         {% else %}
                                             <!-- Chi tiết -->
-                                            <a href="{% url 'appointments:appointment_detail' appt.id %}" class="btn btn-outline-secondary btn-sm">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    data-bs-toggle="modal" data-bs-target="#apptDetailModal"
+                                                    data-patient="{{ appt.patient.user.full_name }}"
+                                                    data-doctor="{{ appt.doctor.user.full_name }}"
+                                                    data-spec="{{ appt.doctor.specialty.name }}"
+                                                    data-date="{{ appt.appointment_at|date:'Y-m-d' }}"
+                                                    data-datehuman="{{ appt.appointment_at|date:'d/m/Y' }}"
+                                                    data-time="{{ appt.appointment_at|localtime|time:'H:i' }}"
+                                                    data-duration="{{ appt.schedule.slot_duration_minutes }}"
+                                                    data-room="{{ appt.doctor.room_number|default:'Chưa cập nhật' }}"
+                                                    data-status="{{ appt.status }}"
+                                                    data-reason="{{ appt.reason|default:'' }}">
                                                 <i class="bi bi-eye"></i> Chi tiết
-                                            </a>
+                                            </button>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -303,7 +337,87 @@
         {% endif %}
     </div>
 
+    <!-- Appointment Detail Modal -->
+    <div class="modal fade" id="apptDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-primary"><i class="bi bi-info-circle me-1"></i> Chi tiết lịch hẹn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row mb-0">
+                        <dt class="col-5">Bệnh nhân:</dt>
+                        <dd class="col-7" id="dPatient"></dd>
+
+                        <dt class="col-5">Bác sĩ:</dt>
+                        <dd class="col-7" id="dDoctor"></dd>
+
+                        <dt class="col-5">Chuyên khoa:</dt>
+                        <dd class="col-7" id="dSpec"></dd>
+
+                        <dt class="col-5">Ngày khám:</dt>
+                        <dd class="col-7"><span id="dDate"></span> (<span id="dWeekday"></span>)</dd>
+
+                        <dt class="col-5">Giờ khám:</dt>
+                        <dd class="col-7" id="dTime"></dd>
+
+                        <dt class="col-5">Thời lượng:</dt>
+                        <dd class="col-7" id="dDuration"></dd>
+
+                        <dt class="col-5">Phòng khám:</dt>
+                        <dd class="col-7" id="dRoom"></dd>
+
+                        <dt class="col-5">Trạng thái:</dt>
+                        <dd class="col-7" id="dStatus"></dd>
+
+                        <dt class="col-5">Lý do khám:</dt>
+                        <dd class="col-7" id="dReason"></dd>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/message-system.js' %}"></script>
+    <script>
+        const WEEKDAYS = ["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"];
+        function toViWeekday(iso){
+            try{ const [y,m,d] = iso.split('-').map(Number); return WEEKDAYS[new Date(y,m-1,d).getDay()]; }catch(e){ return ''; }
+        }
+        function toViStatus(code){
+            const m = {
+                'PENDING':'Chờ xác nhận',
+                'CONFIRMED':'Đã xác nhận',
+                'CHECKED_IN':'Đã check-in',
+                'IN_PROGRESS':'Đang khám',
+                'COMPLETED':'Hoàn thành',
+                'CANCELLED':'Đã hủy',
+                'NO_SHOW':'Không đến'
+            };
+            return m[(code||'').toUpperCase()] || code || '';
+        }
+        
+        const detailEl = document.getElementById('apptDetailModal');
+        detailEl.addEventListener('show.bs.modal', function (ev) {
+            const btn = ev.relatedTarget;
+            const data = (k) => btn.getAttribute('data-' + k) || '';
+            document.getElementById('dPatient').textContent = data('patient');
+            document.getElementById('dDoctor').textContent = data('doctor');
+            document.getElementById('dSpec').textContent = data('spec');
+            const iso = data('date');
+            document.getElementById('dDate').textContent = data('datehuman') || iso;
+            document.getElementById('dWeekday').textContent = toViWeekday(iso);
+            document.getElementById('dTime').textContent = data('time');
+            document.getElementById('dDuration').textContent = (data('duration')||'') + ' phút';
+            document.getElementById('dRoom').textContent = data('room') || 'Chưa cập nhật';
+            document.getElementById('dStatus').textContent = toViStatus(data('status'));
+            document.getElementById('dReason').textContent = data('reason') || 'Không có';
+        });
+    </script>
 </body>
 </html>
