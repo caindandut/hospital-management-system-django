@@ -80,16 +80,6 @@
                     </div>
                 </div>
 
-                <div class="form-options">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="remember" name="remember">
-                        <label class="form-check-label" for="remember">
-                            Ghi nhớ đăng nhập
-                        </label>
-                    </div>
-                    <a href="#" class="forgot-password">Quên mật khẩu?</a>
-                </div>
-
                 <button type="submit" class="btn-auth btn-login">
                     <i class="bi bi-box-arrow-in-right"></i>
                     Đăng nhập
@@ -106,14 +96,6 @@
                 <p>Chưa có tài khoản? 
                     <a href="{% url 'theme:register' %}" class="auth-link">Đăng ký ngay</a>
                 </p>
-            </div>
-
-            <!-- Back to Home -->
-            <div class="back-home">
-                <a href="{% url 'theme:home' %}" class="back-link">
-                    <i class="bi bi-arrow-left"></i>
-                    Quay về trang chủ
-                </a>
             </div>
         </div>
     </div>

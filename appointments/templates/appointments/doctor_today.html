@@ -20,15 +20,6 @@
         .navbar-doctor .dropdown-divider { margin: 0.3rem 0; }
         .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: #eef5ff; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; }
         
-        /* Alert styling */
-        .alert { 
-            max-width: 420px !important; 
-            margin: 10px auto !important; 
-            border-radius: 8px !important;
-            padding: 10px 15px !important;
-            font-size: 14px !important;
-        }
-        .alert .btn-close { filter: invert(1); }
         
         /* Override message container for tighter display */
         #message-container .message {
@@ -158,14 +149,18 @@
         <!-- Message container will be created by JavaScript -->
         <div id="message-container"></div>
         
-        <!-- Django Messages -->
+        <!-- Django Messages as JSON -->
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        <script type="application/json" id="django-messages">
+            [
+                {% for message in messages %}
+                {
+                    "text": "{{ message|escapejs }}",
+                    "type": "{% if message.tags == 'error' or message.tags == 'danger' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        </script>
         {% endif %}
 
         {% if appts %}
@@ -233,7 +228,7 @@
                                             <!-- Xác nhận lịch hẹn -->
                                             <form method="post" action="{% url 'doctors:confirm_appointment' appt.id %}" class="d-inline">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Xác nhận lịch hẹn này?')">
+                                                <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="bi bi-check-circle"></i> Xác nhận
                                                 </button>
                                             </form>
@@ -245,7 +240,7 @@
                                             <!-- Bắt đầu khám -->
                                             <form method="post" action="{% url 'appointments:appt_start' appt.id %}" class="d-inline">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Bắt đầu khám bệnh nhân này?')">
+                                                <button type="submit" class="btn btn-primary btn-sm">
                                                     <i class="bi bi-play-circle"></i> Bắt đầu khám
                                                 </button>
                                             </form>
@@ -309,21 +304,6 @@
     </div>
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    <script>
-      // Remove duplicate alerts before message-system.js processes them
-      document.addEventListener('DOMContentLoaded', function() {
-          const alerts = Array.from(document.querySelectorAll('.alert'));
-          const seen = new Set();
-          alerts.forEach(a => {
-              const txt = a.textContent.replace(/×/g, '').trim();
-              if (seen.has(txt)) {
-                  a.remove();
-              } else {
-                  seen.add(txt);
-              }
-          });
-      });
-    </script>
     <script src="{% static 'js/message-system.js' %}"></script>
 </body>
 </html>

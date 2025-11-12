@@ -144,14 +144,18 @@
         <!-- Message container will be created by JavaScript -->
         <div id="message-container"></div>
         
-        <!-- Django Messages -->
+        <!-- Django Messages as JSON -->
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
+        <script type="application/json" id="django-messages">
+            [
+                {% for message in messages %}
+                {
+                    "text": "{{ message|escapejs }}",
+                    "type": "{% if message.tags == 'error' or message.tags == 'danger' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ]
+        </script>
         {% endif %}
 
         <!-- Stats Cards -->
@@ -242,8 +246,7 @@
                                     {% if appointment.status == "PENDING" %}
                                         <form method="post" action="{% url 'doctors:confirm_appointment' appointment.id %}" class="d-inline">
                                             {% csrf_token %}
-                                            <button type="submit" class="btn btn-soft-success btn-sm" 
-                                                    onclick="return confirm('Xác nhận lịch hẹn này?')">
+                                            <button type="submit" class="btn btn-soft-success btn-sm">
                                                 <i class="bi bi-check-circle"></i> Xác nhận
                                             </button>
                                         </form>
@@ -316,21 +319,6 @@
     {% endfor %}
 
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
-    <script>
-      // Remove duplicate alerts before message-system.js processes them
-      document.addEventListener('DOMContentLoaded', function() {
-          const alerts = Array.from(document.querySelectorAll('.alert'));
-          const seen = new Set();
-          alerts.forEach(a => {
-              const txt = a.textContent.replace(/×/g, '').trim();
-              if (seen.has(txt)) {
-                  a.remove();
-              } else {
-                  seen.add(txt);
-              }
-          });
-      });
-    </script>
     <script src="{% static 'js/message-system.js' %}"></script>
 </body>
 </html>

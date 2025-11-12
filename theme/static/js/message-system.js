@@ -1,50 +1,62 @@
 /**
- * Unified Message System for DUT Hospital
- * Handles all success and error messages consistently
+ * React-Style Toast System for DUT Hospital
+ * Modern toast notifications with smooth animations
  */
 
-// Message configuration
-const MESSAGE_CONFIG = {
+// Toast configuration
+const TOAST_CONFIG = {
     success: {
-        color: '#28a745', // Green
-        icon: '✓',
-        duration: 5000, // 5 seconds
+        bgColor: '#10b981',
+        icon: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`,
+        duration: 4000,
         autoHide: true
     },
     error: {
-        color: '#dc3545', // Red
-        icon: '!',
-        duration: 8000, // 8 seconds
+        bgColor: '#ef4444',
+        icon: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>`,
+        duration: 5000,
+        autoHide: true
+    },
+    warning: {
+        bgColor: '#f59e0b',
+        icon: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`,
+        duration: 5000,
+        autoHide: true
+    },
+    info: {
+        bgColor: '#3b82f6',
+        icon: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>`,
+        duration: 4000,
         autoHide: true
     }
 };
 
-// Initialize message system when DOM is loaded
+// Initialize toast system when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    initializeMessageSystem();
+    initializeToastSystem();
 });
 
 /**
- * Initialize the message system
+ * Initialize the toast system
  */
-function initializeMessageSystem() {
-    // Create message container if it doesn't exist
-    createMessageContainer();
-    
-    // Process any existing Django messages
+function initializeToastSystem() {
+    createToastContainer();
     processDjangoMessages();
 }
 
 /**
- * Create the message container
+ * Create the toast container
  */
-function createMessageContainer() {
+function createToastContainer() {
+    // Use existing message-container or create new one
     let container = document.getElementById('message-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'message-container';
-        container.className = 'message-container';
+        container.className = 'toast-container';
         document.body.appendChild(container);
+    } else {
+        container.className = 'toast-container';
     }
     return container;
 }
@@ -55,29 +67,7 @@ function createMessageContainer() {
 function processDjangoMessages() {
     const processedMessages = new Set();
     
-    // Check for Django messages in the page
-    const alerts = document.querySelectorAll('.alert');
-    
-    alerts.forEach(function(alert) {
-        const messageText = extractMessageText(alert);
-        const messageType = determineMessageType(alert);
-        
-        // Skip duplicate messages
-        const messageKey = messageType + ':' + messageText;
-        if (processedMessages.has(messageKey)) {
-            alert.remove();
-            return;
-        }
-        processedMessages.add(messageKey);
-        
-        // Show the message using our unified system
-        showMessage(messageText, messageType);
-        
-        // Remove the original alert
-        alert.remove();
-    });
-    
-    // Also check for Django messages in JSON script tag
+    // Check for Django messages in JSON script tag
     const messageScript = document.getElementById('django-messages');
     if (messageScript) {
         try {
@@ -86,455 +76,188 @@ function processDjangoMessages() {
                 const messageKey = msg.type + ':' + msg.text;
                 if (!processedMessages.has(messageKey)) {
                     processedMessages.add(messageKey);
-                    showMessage(msg.text, msg.type);
+                    showToast(msg.text, msg.type);
                 }
             });
         } catch (e) {
-            console.log('Could not parse Django messages from script tag');
+            console.error('Could not parse Django messages:', e);
         }
     }
+    
+    // Remove old-style alerts if any exist
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => alert.remove());
 }
 
 /**
- * Extract clean message text from alert element
+ * Show a toast notification
+ * @param {string} message - The message text
+ * @param {string} type - The toast type (success, error, warning, info)
  */
-function extractMessageText(alert) {
-    let text = alert.textContent.trim();
+function showToast(message, type = 'info') {
+    const container = createToastContainer();
+    const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const config = TOAST_CONFIG[type] || TOAST_CONFIG.info;
     
-    // Remove close button text
-    const closeButton = alert.querySelector('.btn-close');
-    if (closeButton) {
-        text = text.replace(closeButton.textContent, '').trim();
-    }
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast toast-${type}`;
+    toast.setAttribute('role', 'alert');
     
-    // Remove icon text
-    const icon = alert.querySelector('i');
-    if (icon) {
-        text = text.replace(icon.textContent, '').trim();
-    }
-    
-    return text;
-}
-
-/**
- * Determine message type from CSS classes
- */
-function determineMessageType(alert) {
-    if (alert.classList.contains('alert-success')) {
-        return 'success';
-    } else if (alert.classList.contains('alert-danger') || alert.classList.contains('alert-error')) {
-        return 'error';
-    } else if (alert.classList.contains('alert-warning')) {
-        return 'warning';
-    } else if (alert.classList.contains('alert-info')) {
-        return 'info';
-    }
-    return 'info';
-}
-
-/**
- * Show inline message in auth form
- * @param {string} text - The message text
- * @param {string} type - The message type (success, error, warning, info)
- */
-function showInlineMessage(text, type = 'info') {
-    const messageId = 'inline-message-' + Date.now();
-    const config = MESSAGE_CONFIG[type] || MESSAGE_CONFIG.error;
-    
-    // Remove any existing inline messages
-    const existingMessages = document.querySelectorAll('.inline-message');
-    existingMessages.forEach(msg => msg.remove());
-    
-    // Find the auth form
-    const authForm = document.querySelector('.auth-form');
-    if (!authForm) return;
-    
-    // Create message element
-    const messageElement = document.createElement('div');
-    messageElement.id = messageId;
-    messageElement.className = 'inline-message inline-message-' + type;
-    messageElement.style.cssText = `
-        background: ${config.color};
-        color: white;
-        padding: 8px 12px;
-        margin: 0 0 0.75rem 0;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-weight: 500;
-        font-size: 13px;
-        position: relative;
-        overflow: hidden;
-        animation: slideInFromTop 0.3s ease-out;
-        border-left: 3px solid rgba(255, 255, 255, 0.4);
+    // Create toast content
+    toast.innerHTML = `
+        <div class="toast-icon">
+            ${config.icon}
+        </div>
+        <div class="toast-content">
+            <div class="toast-message">${escapeHtml(message)}</div>
+        </div>
+        <button class="toast-close" aria-label="Close">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+        <div class="toast-progress"></div>
     `;
-    
-    // Add icon
-    const iconElement = document.createElement('span');
-    iconElement.className = 'inline-message-icon';
-    iconElement.textContent = config.icon;
-    iconElement.style.cssText = `
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-        flex-shrink: 0;
-        margin-right: 6px;
-    `;
-    
-    // Add text
-    const textElement = document.createElement('span');
-    textElement.className = 'inline-message-text';
-    textElement.textContent = text;
-    textElement.style.cssText = `
-        flex: 1;
-        line-height: 1.4;
-    `;
-    
-    // Add close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'inline-message-close';
-    closeButton.innerHTML = '×';
-    closeButton.style.cssText = `
-        background: none;
-        border: none;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        padding: 0;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.8;
-        transition: opacity 0.2s;
-        margin-left: auto;
-        font-weight: bold;
-    `;
-    
-    // Assemble message
-    messageElement.appendChild(iconElement);
-    messageElement.appendChild(textElement);
-    messageElement.appendChild(closeButton);
-    
-    // Insert at the beginning of the form
-    authForm.insertBefore(messageElement, authForm.firstChild);
-    
-    // Close button functionality
-    closeButton.addEventListener('click', function() {
-        hideInlineMessage(messageId);
-    });
-    
-    // Auto-hide functionality
-    if (config.autoHide) {
-        setTimeout(function() {
-            hideInlineMessage(messageId);
-        }, config.duration);
-    }
-    
-    return messageId;
-}
-
-/**
- * Hide inline message
- * @param {string} messageId - The message ID to hide
- */
-function hideInlineMessage(messageId) {
-    const message = document.getElementById(messageId);
-    if (message) {
-        message.style.animation = 'slideOutToTop 0.3s ease-in forwards';
-        setTimeout(function() {
-            if (message.parentNode) {
-                message.parentNode.removeChild(message);
-            }
-        }, 300);
-    }
-}
-
-/**
- * Show a message
- * @param {string} text - The message text
- * @param {string} type - The message type (success, error, warning, info)
- */
-function showMessage(text, type = 'info') {
-    // Check if we're on an auth page and show inline message
-    if (document.body.classList.contains('auth-body')) {
-        return showInlineMessage(text, type);
-    }
-    
-    const container = createMessageContainer();
-    const messageId = 'message-' + Date.now();
-    const config = MESSAGE_CONFIG[type] || MESSAGE_CONFIG.error;
-    
-    // Create message element
-    const messageElement = document.createElement('div');
-    messageElement.id = messageId;
-    messageElement.className = 'message message-' + type;
-    messageElement.style.cssText = `
-        background: ${config.color};
-        color: white;
-        padding: 8px 12px;
-        margin: 4px 0;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-weight: 500;
-        font-size: 13px;
-        position: relative;
-        overflow: hidden;
-        animation: slideInFromRight 0.3s ease-out;
-        max-width: 100%;
-        margin-left: 0;
-        margin-right: 0;
-        border-left: 3px solid rgba(255, 255, 255, 0.4);
-    `;
-    
-    // Add icon
-    const iconElement = document.createElement('span');
-    iconElement.className = 'message-icon';
-    iconElement.textContent = config.icon;
-    iconElement.style.cssText = `
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-        flex-shrink: 0;
-        margin-right: 6px;
-    `;
-    
-    // Add text
-    const textElement = document.createElement('span');
-    textElement.className = 'message-text';
-    textElement.textContent = text;
-    textElement.style.cssText = `
-        flex: 1;
-        line-height: 1.4;
-        max-width: 320px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    `;
-    
-    // Add close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'message-close';
-    closeButton.innerHTML = '×';
-    closeButton.style.cssText = `
-        background: none;
-        border: none;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        padding: 0;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.8;
-        transition: opacity 0.2s;
-        margin-left: auto;
-        font-weight: bold;
-    `;
-    
-    // Add progress bar
-    const progressBar = document.createElement('div');
-    progressBar.className = 'message-progress';
-    progressBar.style.cssText = `
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        height: 3px;
-        background: rgba(255, 255, 255, 0.3);
-        width: 100%;
-        transition: width ${config.duration}ms linear;
-    `;
-    
-    // Assemble message
-    messageElement.appendChild(iconElement);
-    messageElement.appendChild(textElement);
-    messageElement.appendChild(closeButton);
-    messageElement.appendChild(progressBar);
     
     // Add to container
-    container.appendChild(messageElement);
+    container.appendChild(toast);
     
-    // Add hover effects
-    messageElement.addEventListener('mouseenter', function() {
-        closeButton.style.opacity = '1';
-    });
+    // Trigger animation
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
     
-    messageElement.addEventListener('mouseleave', function() {
-        closeButton.style.opacity = '0.8';
-    });
-    
-    // Close button functionality
-    closeButton.addEventListener('click', function() {
-        hideMessage(messageId);
-    });
+    // Setup close button
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => hideToast(toastId));
     
     // Auto-hide functionality
     if (config.autoHide) {
-        // Start progress bar animation
+        const progressBar = toast.querySelector('.toast-progress');
+        let remainingTime = config.duration;
+        let startTime = Date.now();
+        let timeoutId;
+        let isPaused = false;
+        
+        // Start progress animation
         setTimeout(() => {
+            progressBar.style.transition = `width ${config.duration}ms linear`;
             progressBar.style.width = '0%';
         }, 10);
         
-        // Auto-hide with pause on hover
-        let remaining = config.duration;
-        let start = Date.now();
-        let timer = setTimeout(function autoHide() {
-            hideMessage(messageId);
-        }, remaining);
+        const startTimer = () => {
+            timeoutId = setTimeout(() => {
+                hideToast(toastId);
+            }, remainingTime);
+        };
         
-        messageElement.addEventListener('mouseenter', function() {
-            clearTimeout(timer);
-            remaining -= Date.now() - start;
+        startTimer();
+        
+        // Pause on hover
+        toast.addEventListener('mouseenter', () => {
+            if (!isPaused) {
+                clearTimeout(timeoutId);
+                remainingTime -= (Date.now() - startTime);
+                progressBar.style.transition = 'none';
+                const currentWidth = parseFloat(getComputedStyle(progressBar).width);
+                progressBar.style.width = currentWidth + 'px';
+                isPaused = true;
+            }
         });
         
-        messageElement.addEventListener('mouseleave', function() {
-            start = Date.now();
-            timer = setTimeout(function() {
-                hideMessage(messageId);
-            }, remaining);
+        // Resume on leave
+        toast.addEventListener('mouseleave', () => {
+            if (isPaused) {
+                startTime = Date.now();
+                progressBar.style.transition = `width ${remainingTime}ms linear`;
+                progressBar.style.width = '0%';
+                startTimer();
+                isPaused = false;
+            }
         });
     }
     
-    return messageId;
+    return toastId;
 }
 
 /**
- * Hide a message
- * @param {string} messageId - The message ID to hide
+ * Hide a toast notification
+ * @param {string} toastId - The toast ID to hide
  */
-function hideMessage(messageId) {
-    const message = document.getElementById(messageId);
-    if (message) {
-        message.style.animation = 'slideOutToRight 0.3s ease-in forwards';
-        setTimeout(function() {
-            if (message.parentNode) {
-                message.parentNode.removeChild(message);
+function hideToast(toastId) {
+    const toast = document.getElementById(toastId);
+    if (toast) {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
             }
         }, 300);
     }
 }
 
 /**
- * Show success message
- * @param {string} text - The success message
+ * Show success toast
+ * @param {string} message - The success message
  */
-function showSuccessMessage(text) {
-    return showMessage(text, 'success');
+function showSuccessMessage(message) {
+    return showToast(message, 'success');
 }
 
 /**
- * Show error message
- * @param {string} text - The error message
+ * Show error toast
+ * @param {string} message - The error message
  */
-function showErrorMessage(text) {
-    return showMessage(text, 'error');
+function showErrorMessage(message) {
+    return showToast(message, 'error');
 }
 
 /**
- * Show warning message
- * @param {string} text - The warning message
+ * Show warning toast
+ * @param {string} message - The warning message
  */
-function showWarningMessage(text) {
-    return showMessage(text, 'warning');
+function showWarningMessage(message) {
+    return showToast(message, 'warning');
 }
 
 /**
- * Show info message
- * @param {string} text - The info message
+ * Show info toast
+ * @param {string} message - The info message
  */
-function showInfoMessage(text) {
-    return showMessage(text, 'info');
+function showInfoMessage(message) {
+    return showToast(message, 'info');
 }
 
-// Add CSS animations
+/**
+ * Escape HTML to prevent XSS
+ * @param {string} text - The text to escape
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Add CSS styles
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes slideInFromTop {
-        0% {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-        100% {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideInFromRight {
-        0% {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        100% {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutToTop {
-        0% {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        100% {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes slideOutToRight {
-        0% {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        100% {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    .message-container {
+    .toast-container {
         position: fixed;
         top: 20px;
         right: 20px;
         z-index: 9999;
-        width: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         max-width: 420px;
-        padding: 0;
         pointer-events: none;
     }
     
-    /* Special positioning for auth pages */
-    body.auth-body .message-container {
-        top: 20px;
-        right: 20px;
-        left: auto;
-        max-width: 350px;
-    }
-    
-    /* Mobile responsive for auth pages */
     @media (max-width: 768px) {
-        body.auth-body .message-container {
+        .toast-container {
             top: 10px;
             right: 10px;
             left: 10px;
@@ -542,22 +265,169 @@ style.textContent = `
         }
     }
     
-    .message-container .message {
+    .toast {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        padding: 16px;
+        display: flex;
+        align-items: start;
+        gap: 12px;
+        min-height: 64px;
+        position: relative;
+        overflow: hidden;
         pointer-events: auto;
+        transform: translateX(calc(100% + 20px));
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    .message-close:hover {
-        opacity: 1 !important;
+    .toast.show {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    
+    .toast.hide {
+        transform: translateX(calc(100% + 20px));
+        opacity: 0;
+    }
+    
+    .toast-icon {
+        width: 24px;
+        height: 24px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+    }
+    
+    .toast-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .toast-success .toast-icon {
+        background: #d1fae5;
+        color: #10b981;
+    }
+    
+    .toast-error .toast-icon {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+    
+    .toast-warning .toast-icon {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+    
+    .toast-info .toast-icon {
+        background: #dbeafe;
+        color: #3b82f6;
+    }
+    
+    .toast-content {
+        flex: 1;
+        min-width: 0;
+        padding-top: 2px;
+    }
+    
+    .toast-message {
+        color: #1f2937;
+        font-size: 14px;
+        line-height: 1.5;
+        font-weight: 500;
+        word-wrap: break-word;
+    }
+    
+    .toast-close {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .toast-close:hover {
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+    
+    .toast-close:active {
+        background: #e5e7eb;
+    }
+    
+    .toast-close svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 4px;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.1);
+        transform-origin: left;
+    }
+    
+    .toast-success .toast-progress {
+        background: #10b981;
+    }
+    
+    .toast-error .toast-progress {
+        background: #ef4444;
+    }
+    
+    .toast-warning .toast-progress {
+        background: #f59e0b;
+    }
+    
+    .toast-info .toast-progress {
+        background: #3b82f6;
+    }
+    
+    @keyframes toast-in {
+        from {
+            transform: translateX(calc(100% + 20px));
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes toast-out {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(calc(100% + 20px));
+            opacity: 0;
+        }
     }
 `;
 document.head.appendChild(style);
 
 // Export functions for global use
-window.showMessage = showMessage;
+window.showToast = showToast;
 window.showSuccessMessage = showSuccessMessage;
 window.showErrorMessage = showErrorMessage;
 window.showWarningMessage = showWarningMessage;
 window.showInfoMessage = showInfoMessage;
-window.hideMessage = hideMessage;
-window.showInlineMessage = showInlineMessage;
-window.hideInlineMessage = hideInlineMessage;
+window.hideToast = hideToast;
+window.showMessage = showToast; // Alias for backward compatibility
+window.showInlineMessage = showToast; // Alias for backward compatibility
