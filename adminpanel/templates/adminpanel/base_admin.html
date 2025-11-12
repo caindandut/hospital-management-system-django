@@ -84,15 +84,19 @@
 
   <!-- Main -->
   <main class="content py-4">
-    {% if messages %}
-      <div class="container">
-        {% for m in messages %}<div class="alert alert-{{ m.tags }} shadow-sm">{{ m }}</div>{% endfor %}
-      </div>
-    {% endif %}
     {% block content %}{% endblock %}
   </main>
 
+  <!-- Django Messages as JSON for Toast System -->
+  <script type="application/json" id="django-messages">
+    [{% if messages %}{% for message in messages %}{
+      "message": "{{ message|escapejs }}",
+      "tags": "{{ message.tags }}"
+    }{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}]
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/message-system.js' %}"></script>
   <script>
     // User avatar hover logout functionality
     document.addEventListener('DOMContentLoaded', function() {
