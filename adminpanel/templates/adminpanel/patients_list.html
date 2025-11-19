@@ -97,8 +97,12 @@
                 <input name="email" type="email" class="form-control" required>
               </div>
               <div class="col-md-6" id="passwordGroup">
-                <label class="form-label">Mật khẩu</label>
-                <input name="password" type="password" class="form-control" placeholder="Để trống nếu không đổi">
+                <label class="form-label">Mật khẩu *</label>
+                <input name="password" type="password" class="form-control" required>
+              </div>
+              <div class="col-md-6" id="password2Group">
+                <label class="form-label">Nhập lại mật khẩu *</label>
+                <input name="password2" type="password" class="form-control" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">CCCD</label>
@@ -145,7 +149,8 @@
   // Django URLs - defined here to avoid linter errors
   const URLS = {
     patientsList: '{% url "adminpanel:admin_patients_list" %}',
-    patientUpdate: '{% url "adminpanel:admin_patient_update" 0 %}'
+    patientUpdate: '{% url "adminpanel:admin_patient_update" 0 %}',
+    patientCreate: '{% url "adminpanel:admin_patient_create" %}'
   };
   </script>
   
@@ -157,9 +162,24 @@
     currentPatientId = null;
     document.getElementById('patientModalTitle').textContent = 'Thêm bệnh nhân';
     document.getElementById('passwordGroup').style.display = '';
+    document.getElementById('password2Group').style.display = '';
+    document.querySelector('[name="password"]').required = true;
+    document.querySelector('[name="password2"]').required = true;
     document.getElementById('patientForm').reset();
     if (!modal) {
-      modal = new bootstrap.Modal(document.getElementById('patientModal'));
+      const modalEl = document.getElementById('patientModal');
+      modal = new bootstrap.Modal(modalEl, {
+        backdrop: true,
+        keyboard: true
+      });
+      // Ensure backdrop is removed when modal is hidden
+      modalEl.addEventListener('hidden.bs.modal', function() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      });
     }
     modal.show();
   }
@@ -179,6 +199,10 @@
         currentPatientId = this.dataset.patientId;
         document.getElementById('patientModalTitle').textContent = 'Sửa bệnh nhân';
         document.getElementById('passwordGroup').style.display = '';
+        document.getElementById('password2Group').style.display = 'none';
+        document.querySelector('[name="password"]').required = false;
+        document.querySelector('[name="password"]').placeholder = 'Để trống nếu không đổi';
+        document.querySelector('[name="password2"]').required = false;
         
         document.querySelector('[name="full_name"]').value = this.dataset.fullname || '';
         document.querySelector('[name="email"]').value = this.dataset.email || '';
@@ -188,6 +212,8 @@
         document.querySelector('[name="gender"]').value = this.dataset.gender || '';
         document.querySelector('[name="address"]').value = this.dataset.address || '';
         document.querySelector('[name="is_active"]').checked = this.dataset.active === 'true';
+        document.querySelector('[name="password"]').value = '';
+        document.querySelector('[name="password2"]').value = '';
         
         if (!modal) {
           modal = new bootstrap.Modal(document.getElementById('patientModal'));
@@ -196,33 +222,93 @@
       });
     });
     
-    // Continue with existing code
+    // Ensure backdrop is removed when modal is hidden
+    const patientModalEl = document.getElementById('patientModal');
+    if (patientModalEl) {
+      patientModalEl.addEventListener('hidden.bs.modal', function() {
+        // Remove any remaining backdrop elements
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        backdrops.forEach(backdrop => backdrop.remove());
+        // Remove modal-open class from body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+      });
+    }
+    
+    // Get form element first
     const modalEl = document.getElementById('patientModal');
     const titleEl = document.getElementById('patientModalTitle');
     const pwdGroup = document.getElementById('passwordGroup');
     const formEl = document.getElementById('patientForm');
-    const shouldCreate = modalEl.getAttribute('data-open-create') === '1';
-    const shouldEdit = modalEl.getAttribute('data-open-edit') === '1';
+    const shouldCreate = modalEl ? modalEl.getAttribute('data-open-create') === '1' : false;
+    const shouldEdit = modalEl ? modalEl.getAttribute('data-open-edit') === '1' : false;
+    
+    // Password validation function
+    let validatePasswordMatch = function() {
+      if (!formEl) return;
+      const passwordInput = formEl.querySelector('[name="password"]');
+      const password2Input = formEl.querySelector('[name="password2"]');
+      
+      if (!passwordInput || !password2Input) return;
+      
+      if (currentPatientId) {
+        // Edit mode: only validate if password is provided
+        if (passwordInput.value && passwordInput.value !== password2Input.value) {
+          password2Input.setCustomValidity('Mật khẩu không khớp');
+        } else {
+          password2Input.setCustomValidity('');
+        }
+      } else {
+        // Create mode: password is required
+        if (passwordInput.value !== password2Input.value) {
+          password2Input.setCustomValidity('Mật khẩu không khớp');
+        } else {
+          password2Input.setCustomValidity('');
+        }
+      }
+    };
+    
+    // Setup password validation listeners
+    if (formEl) {
+      const passwordInput = formEl.querySelector('[name="password"]');
+      const password2Input = formEl.querySelector('[name="password2"]');
+      
+      if (passwordInput && password2Input) {
+        passwordInput.addEventListener('input', validatePasswordMatch);
+        password2Input.addEventListener('input', validatePasswordMatch);
+      }
+    }
     
     // Handle form submit
+    if (!formEl) {
+      console.error('Form element not found');
+      return;
+    }
+    
     formEl.addEventListener('submit', async function(e) {
       e.preventDefault();
+      
+      // Validate password match before submit
+      validatePasswordMatch();
+      if (!formEl.checkValidity()) {
+        formEl.classList.add('was-validated');
+        return;
+      }
+      
       const fd = new FormData(formEl);
       
       let url, method;
       if (currentPatientId) {
-        // Update
         url = URLS.patientUpdate.replace('/0/', '/' + currentPatientId + '/');
         method = 'POST';
       } else {
-        // Create - need to implement this endpoint
-        if (window.showMessage) {
-          window.showMessage('warning', 'Chức năng thêm bệnh nhân mới chưa được implement.');
-        } else {
-          alert('Chức năng thêm bệnh nhân mới chưa được implement trong view.');
-        }
-        return;
+        url = URLS.patientCreate;
+        method = 'POST';
       }
+      
+      console.log('Submitting to:', url);
+      console.log('Form data:', Object.fromEntries(fd));
       
       try {
         const res = await fetch(url, {
@@ -230,11 +316,32 @@
           headers: {'X-CSRFToken': '{{ csrf_token }}'},
           body: fd
         });
+        
+        console.log('Response status:', res.status);
+        
+        // Check if response is ok
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Có lỗi xảy ra' }));
+          console.error('Error response:', errorData);
+          throw new Error(errorData.message || 'Có lỗi xảy ra');
+        }
+        
         const data = await res.json();
+        console.log('Response data:', data);
         if (data.ok) {
           if (window.showMessage) {
             window.showMessage('success', data.message || 'Đã lưu thay đổi');
-            if (modal) modal.hide();
+            if (modal) {
+              modal.hide();
+              // Clean up backdrop after hiding
+              setTimeout(() => {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(backdrop => backdrop.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+              }, 300);
+            }
             setTimeout(() => location.reload(), 1500);
           } else {
             location.reload();
@@ -260,6 +367,10 @@
       currentPatientId = null;
       titleEl.textContent = 'Thêm bệnh nhân';
       pwdGroup.style.display = '';
+      document.getElementById('password2Group').style.display = '';
+      document.querySelector('[name="password"]').required = true;
+      document.querySelector('[name="password2"]').required = true;
+      document.querySelector('[name="password"]').placeholder = '';
       if (!modal) {
         modal = new bootstrap.Modal(modalEl);
       }

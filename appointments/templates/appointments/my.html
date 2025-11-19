@@ -155,7 +155,16 @@
                                         <tr>
                                             <td>
                                                 <div class="fw-bold">{{ appointment.appointment_at|date:"d/m/Y" }}</div>
-                                                <small class="text-muted">{{ appointment.appointment_at|date:"l" }}</small>
+                                                <small class="text-muted">
+                                                    {% if appointment.appointment_at|date:"l" == "Monday" %}Thứ 2
+                                                    {% elif appointment.appointment_at|date:"l" == "Tuesday" %}Thứ 3
+                                                    {% elif appointment.appointment_at|date:"l" == "Wednesday" %}Thứ 4
+                                                    {% elif appointment.appointment_at|date:"l" == "Thursday" %}Thứ 5
+                                                    {% elif appointment.appointment_at|date:"l" == "Friday" %}Thứ 6
+                                                    {% elif appointment.appointment_at|date:"l" == "Saturday" %}Thứ 7
+                                                    {% elif appointment.appointment_at|date:"l" == "Sunday" %}Chủ nhật
+                                                    {% else %}{{ appointment.appointment_at|date:"l" }}{% endif %}
+                                                </small>
                                             </td>
                                             <td>
                                                 <div class="fw-bold text-primary">{{ appointment.appointment_at|localtime|time:"H:i" }}</div>

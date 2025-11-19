@@ -505,6 +505,16 @@ footer {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Ensure message-container doesn't have white background */
+#message-container,
+#message-container.toast-container,
+.toast-container#message-container {
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 .toast {
@@ -631,4 +641,33 @@ footer {
         min-width: auto;
         width: 100%;
     }
+}
+
+/* Message System Styles - Ensure colors are applied correctly */
+#message-container .message {
+    pointer-events: auto;
+}
+
+#message-container .message-success {
+    background: #28a745 !important;
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+#message-container .message-error {
+    background: #dc3545 !important;
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+#message-container .message-warning {
+    background: #ffc107 !important;
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+#message-container .message-info {
+    background: #17a2b8 !important;
+    background-color: #17a2b8 !important;
+    color: white !important;
 }

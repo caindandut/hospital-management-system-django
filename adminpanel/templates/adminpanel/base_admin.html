@@ -35,6 +35,54 @@
     /* Chiều cao box biểu đồ */
     .chart-box{ height:300px; }
     .chart-box canvas{ width:100% !important; height:100% !important; }
+
+    /* Message System Styles - Ensure colors are applied correctly */
+    #message-container {
+      background: transparent !important;
+      background-color: transparent !important;
+    }
+    
+    #message-container .message-success {
+      background: #28a745 !important;
+      background-color: #28a745 !important;
+      color: white !important;
+    }
+    
+    #message-container .message-error {
+      background: #dc3545 !important;
+      background-color: #dc3545 !important;
+      color: white !important;
+    }
+    
+    #message-container .message-warning {
+      background: #ffc107 !important;
+      background-color: #ffc107 !important;
+      color: #212529 !important;
+    }
+    
+    #message-container .message-info {
+      background: #17a2b8 !important;
+      background-color: #17a2b8 !important;
+      color: white !important;
+    }
+    
+    /* Fix modal backdrop issue */
+    .modal-backdrop {
+      z-index: 1040;
+    }
+    
+    .modal-backdrop.fade {
+      opacity: 0.5;
+    }
+    
+    .modal-backdrop.show {
+      opacity: 0.5;
+    }
+    
+    /* Ensure backdrop is removed when modal is closed */
+    body:not(.modal-open) .modal-backdrop {
+      display: none !important;
+    }
   </style>
   {% block head %}{% endblock %}
 </head>
@@ -87,16 +135,19 @@
     {% block content %}{% endblock %}
   </main>
 
+  <!-- Message container -->
+  <div id="message-container"></div>
+
   <!-- Django Messages as JSON for Toast System -->
   <script type="application/json" id="django-messages">
     [{% if messages %}{% for message in messages %}{
-      "message": "{{ message|escapejs }}",
-      "tags": "{{ message.tags }}"
+      "text": "{{ message|escapejs }}",
+      "type": "{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}"
     }{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}]
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{% static 'js/message-system.js' %}"></script>
+  <script src="{% static 'js/message-system.js' %}?v=1.1"></script>
   <script>
     // User avatar hover logout functionality
     document.addEventListener('DOMContentLoaded', function() {

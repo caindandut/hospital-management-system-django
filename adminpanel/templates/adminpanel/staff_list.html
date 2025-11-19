@@ -9,9 +9,9 @@
 <div class="container">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="mb-0">Quản lý nhân viên</h2>
-    <a href="{% url 'adminpanel:settings' %}?tab=users" class="btn btn-outline-primary">
-      <i class="bi bi-plus-circle me-1"></i>Tạo tài khoản
-    </a>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreateStaff">
+      <i class="bi bi-plus-circle me-1"></i>Thêm nhân viên
+    </button>
   </div>
 
   <!-- Search -->
@@ -202,9 +202,114 @@
 </div>
 {% endfor %}
 
+<!-- Modal Create Staff -->
+<div class="modal fade" id="modalCreateStaff" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="formCreateStaff" class="needs-validation" novalidate>
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Thêm nhân viên</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Họ và tên *</label>
+              <input name="full_name" class="form-control" required>
+              <div class="invalid-feedback">Vui lòng nhập họ tên</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email *</label>
+              <input name="email" type="email" class="form-control" required>
+              <div class="invalid-feedback">Email không hợp lệ</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">SĐT</label>
+              <input name="phone" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mã nhân viên</label>
+              <input name="employee_code" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Giới tính</label>
+              <select name="gender" class="form-select">
+                <option value="">Chọn giới tính</option>
+                <option value="MALE">Nam</option>
+                <option value="FEMALE">Nữ</option>
+                <option value="OTHER">Khác</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ngày sinh</label>
+              <input name="date_of_birth" type="date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">CCCD</label>
+              <input name="cccd" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Địa chỉ</label>
+              <input name="address" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vị trí</label>
+              <input name="position" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ca làm việc</label>
+              <select name="shift" class="form-select">
+                <option value="">Chọn ca làm</option>
+                <option value="MORNING">Sáng</option>
+                <option value="AFTERNOON">Chiều</option>
+                <option value="ROTATE">Luân phiên</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ngày bắt đầu</label>
+              <input name="start_date" type="date" class="form-control">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Trạng thái</label>
+              <select name="status" class="form-select">
+                <option value="">Chọn trạng thái</option>
+                <option value="ACTIVE">Hoạt động</option>
+                <option value="INACTIVE">Không hoạt động</option>
+                <option value="ON_LEAVE">Nghỉ phép</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Kích hoạt tài khoản</label>
+              <select name="is_active" class="form-select">
+                <option value="1" selected>Bật</option>
+                <option value="0">Tắt</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Mật khẩu *</label>
+              <input name="password" type="password" class="form-control" required>
+              <div class="invalid-feedback">Vui lòng nhập mật khẩu</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Xác nhận mật khẩu *</label>
+              <input name="password2" type="password" class="form-control" required>
+              <div class="invalid-feedback">Vui lòng xác nhận mật khẩu</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+          <button class="btn btn-primary" type="submit">Tạo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Password confirmation validation
+  // Password confirmation validation for edit modals
   const modals = document.querySelectorAll('[id^="editStaffModal"]');
   modals.forEach(modal => {
     const form = modal.querySelector('form');
@@ -224,6 +329,53 @@ document.addEventListener('DOMContentLoaded', function() {
       confirmPassword.addEventListener('input', validatePasswordMatch);
     }
   });
+
+  // Create staff form
+  const formCreateStaff = document.getElementById('formCreateStaff');
+  if (formCreateStaff) {
+    const password = formCreateStaff.querySelector('input[name="password"]');
+    const password2 = formCreateStaff.querySelector('input[name="password2"]');
+    
+    function validatePasswordMatch() {
+      if (password.value !== password2.value) {
+        password2.setCustomValidity('Mật khẩu không khớp');
+      } else {
+        password2.setCustomValidity('');
+      }
+    }
+    
+    password.addEventListener('input', validatePasswordMatch);
+    password2.addEventListener('input', validatePasswordMatch);
+    
+    formCreateStaff.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      formCreateStaff.classList.add('was-validated');
+      
+      validatePasswordMatch();
+      
+      if (!formCreateStaff.checkValidity()) {
+        return;
+      }
+      
+      const fd = new FormData(formCreateStaff);
+      try {
+        const res = await fetch("{% url 'adminpanel:admin_staff_create' %}", {
+          method: 'POST',
+          headers: {'X-CSRFToken': '{{ csrf_token }}'},
+          body: fd
+        });
+        const data = await res.json();
+        if (data.ok) {
+          location.reload();
+        } else {
+          alert(data.msg || 'Có lỗi xảy ra');
+        }
+      } catch (error) {
+        console.error('Request failed:', error);
+        alert('Có lỗi xảy ra khi tạo nhân viên');
+      }
+    });
+  }
 });
 </script>
 

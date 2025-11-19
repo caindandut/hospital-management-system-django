@@ -171,7 +171,21 @@ def admin_doctor_update(request, doctor_id):
     sp = request.POST.get("specialty_id")
     if sp:
         d.specialty_id = sp
-    d.user.save(update_fields=["full_name", "phone"])
+    
+    # Handle password update
+    password = request.POST.get("password", "").strip()
+    password2 = request.POST.get("password2", "").strip()
+    update_fields = ["full_name", "phone"]
+    
+    if password:
+        if password != password2:
+            return JsonResponse({"ok": False, "msg": "Mật khẩu xác nhận không khớp."}, status=400)
+        if len(password) < 6:
+            return JsonResponse({"ok": False, "msg": "Mật khẩu phải có ít nhất 6 ký tự."}, status=400)
+        d.user.password_hash = make_password(password)
+        update_fields.append("password_hash")
+    
+    d.user.save(update_fields=update_fields)
     d.save()
     messages.success(request, "Đã cập nhật bác sĩ.")
     return JsonResponse({"ok": True})
@@ -863,6 +877,79 @@ def admin_staff_list(request):
 @login_required
 @role_required([Role.ADMIN])
 @transaction.atomic
+def admin_staff_create(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "msg": "Invalid method"}, status=405)
+
+    try:
+        full_name = (request.POST.get("full_name", "") or "").strip()
+        email = (request.POST.get("email", "") or "").strip().lower()
+        phone = (request.POST.get("phone", "") or "").strip()
+        employee_code = (request.POST.get("employee_code", "") or "").strip()
+        gender = request.POST.get("gender", "") or None
+        date_of_birth = request.POST.get("date_of_birth") or None
+        cccd = (request.POST.get("cccd", "") or "").strip()
+        address = (request.POST.get("address", "") or "").strip()
+        position = (request.POST.get("position", "") or "").strip()
+        shift = request.POST.get("shift", "") or None
+        start_date = request.POST.get("start_date") or None
+        status = request.POST.get("status", "") or None
+        password = request.POST.get("password", "").strip()
+        password2 = request.POST.get("password2", "").strip()
+        is_active = 1 if request.POST.get("is_active") == "1" else 0
+
+        if not full_name or not email or not password:
+            return JsonResponse({"ok": False, "msg": "Vui lòng nhập đầy đủ thông tin bắt buộc."}, status=400)
+        
+        if password != password2:
+            return JsonResponse({"ok": False, "msg": "Mật khẩu xác nhận không khớp."}, status=400)
+        
+        if len(password) < 6:
+            return JsonResponse({"ok": False, "msg": "Mật khẩu phải có ít nhất 6 ký tự."}, status=400)
+        
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"ok": False, "msg": "Email không hợp lệ."}, status=400)
+        
+        if Users.objects.filter(email=email).exists():
+            return JsonResponse({"ok": False, "msg": "Email đã tồn tại."}, status=400)
+
+        now = timezone.now()
+        user = Users.objects.create(
+            email=email,
+            full_name=full_name,
+            phone=phone or None,
+            role="STAFF",
+            is_active=is_active,
+            password_hash=make_password(password),
+            created_at=now,
+            updated_at=now,
+        )
+        StaffProfiles.objects.create(
+            user=user,
+            employee_code=employee_code or None,
+            gender=gender,
+            date_of_birth=date_of_birth or None,
+            cccd=cccd or None,
+            address=address or None,
+            position=position or None,
+            shift=shift,
+            start_date=start_date or None,
+            status=status,
+            created_at=now,
+            updated_at=now,
+        )
+        messages.success(request, f"Đã tạo nhân viên {full_name} thành công.")
+        return JsonResponse({"ok": True, "msg": "Đã tạo nhân viên thành công."})
+    except Exception as e:
+        print(f"Error creating staff: {e}")
+        return JsonResponse({"ok": False, "msg": f"Có lỗi xảy ra: {str(e)}"}, status=500)
+
+
+@login_required
+@role_required([Role.ADMIN])
+@transaction.atomic
 def admin_staff_update(request, pk):
     if request.method != "POST":
         messages.error(request, "Phương thức không hợp lệ.")
@@ -935,7 +1022,8 @@ def admin_patient_create(request):
         return JsonResponse({"ok": False, "message": "Invalid method"}, status=405)
     full_name = (request.POST.get("full_name", "") or "").strip()
     email = (request.POST.get("email", "") or "").strip().lower()
-    password = request.POST.get("password") or ""
+    password = (request.POST.get("password", "") or "").strip()
+    password2 = (request.POST.get("password2", "") or "").strip()
     phone = (request.POST.get("phone", "") or "").strip()
     cccd = (request.POST.get("cccd", "") or "").strip()
     date_of_birth = request.POST.get("date_of_birth") or None
@@ -943,29 +1031,62 @@ def admin_patient_create(request):
     address = request.POST.get("address") or None
     is_active = 1 if (request.POST.get("is_active") == "on") else 0
 
-    if not full_name or not email or not cccd:
-        return JsonResponse({"ok": False, "message": "Vui lòng nhập Họ tên, Email và CCCD."}, status=400)
+    if not full_name or not email or not cccd or not password:
+        return JsonResponse({"ok": False, "message": "Vui lòng nhập đầy đủ thông tin bắt buộc."}, status=400)
+    
+    if password != password2:
+        return JsonResponse({"ok": False, "message": "Mật khẩu xác nhận không khớp."}, status=400)
+    
+    if len(password) < 6:
+        return JsonResponse({"ok": False, "message": "Mật khẩu phải có ít nhất 6 ký tự."}, status=400)
+    
     if AccountsUsers.objects.filter(email=email).exists():
         return JsonResponse({"ok": False, "message": "Email đã tồn tại."}, status=400)
     if PatientProfiles.objects.filter(cccd=cccd).exists():
         return JsonResponse({"ok": False, "message": "CCCD đã tồn tại."}, status=400)
 
-    user = AccountsUsers.objects.create(
-        email=email,
-        full_name=full_name,
-        phone=phone or None,
-        role="PATIENT",
-        is_active=is_active,
-        password_hash=make_password(password or get_random_string(10)),
-    )
-    PatientProfiles.objects.create(
-        user=user,
-        cccd=cccd,
-        date_of_birth=date_of_birth or None,
-        gender=gender or None,
-        address=address or None,
-    )
-    return JsonResponse({"ok": True, "message": "Đã tạo bệnh nhân."})
+    try:
+        now = timezone.now()
+        user = AccountsUsers.objects.create(
+            email=email,
+            full_name=full_name,
+            phone=phone or None,
+            role="PATIENT",
+            is_active=is_active,
+            password_hash=make_password(password),
+            created_at=now,
+            updated_at=now,
+        )
+        
+        PatientProfiles.objects.create(
+            user=user,
+            cccd=cccd,
+            date_of_birth=date_of_birth or None,
+            gender=gender or None,
+            address=address or None,
+        )
+        messages.success(request, f"Đã tạo bệnh nhân {full_name} thành công.")
+        return JsonResponse({"ok": True, "message": "Đã tạo bệnh nhân thành công."})
+    except IntegrityError as e:
+        print(f"IntegrityError creating patient: {e}")
+        # Rollback user if patient profile creation failed
+        if 'user' in locals():
+            try:
+                user.delete()
+            except:
+                pass
+        return JsonResponse({"ok": False, "message": f"Lỗi dữ liệu: {str(e)}"}, status=400)
+    except Exception as e:
+        import traceback
+        print(f"Error creating patient: {e}")
+        print(traceback.format_exc())
+        # Rollback user if patient profile creation failed
+        if 'user' in locals():
+            try:
+                user.delete()
+            except:
+                pass
+        return JsonResponse({"ok": False, "message": f"Có lỗi xảy ra: {str(e)}"}, status=500)
 
 
 @login_required

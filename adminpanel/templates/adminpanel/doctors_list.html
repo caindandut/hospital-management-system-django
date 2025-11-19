@@ -150,6 +150,14 @@
                           <span class="input-group-text">VND</span>
                         </div>
                       </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Mật khẩu mới (tùy chọn)</label>
+                        <input name="password" type="password" class="form-control" placeholder="Để trống nếu không đổi">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Nhập lại mật khẩu mới</label>
+                        <input name="password2" type="password" class="form-control" placeholder="Để trống nếu không đổi">
+                      </div>
                     </div>
                   </div>
                   <div class="modal-footer">
@@ -230,7 +238,7 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label">Phí khám (VND)</label>
-                <input name="consultation_fee" id="consultation_fee" class="form-control"  readonly>
+                <input name="consultation_fee" id="consultation_fee" class="form-control vnd-input">
               </div>
               <div class="col-md-6">
                 <label class="form-label">Mật khẩu *</label>
@@ -253,6 +261,7 @@
     </div>
   </div>
 
+  {{ fee_mapping|json_script:"feeMappingData" }}
   <script>
   (() => {
     // VND input formatting
@@ -275,7 +284,8 @@
       const rankSelect = form.querySelector('select[name="rank"]');
       const consultationFeeInput = form.querySelector('input[name="consultation_fee"]');
       
-      const feeMapping = JSON.parse('{{ fee_mapping|escapejs }}');
+      const feeMappingEl = document.getElementById('feeMappingData');
+      const feeMapping = feeMappingEl ? JSON.parse(feeMappingEl.textContent) : {};
       
       function updateConsultationFee() {
         const selectedRank = rankSelect.value;
@@ -317,6 +327,7 @@
         }
         console.log('Form validation passed, sending request...');
         const fd = new FormData(form);
+        fd.set('consultation_fee', unformat(fd.get('consultation_fee')));
         try {
           const res = await fetch("{% url 'adminpanel:admin_doctors_create' %}", { 
             method: 'POST', 
@@ -342,13 +353,85 @@
 
     // Edit doctor forms (per-row)
     document.querySelectorAll('.formEditDoctor').forEach(formEl=>{
+      // Password validation
+      const passwordInput = formEl.querySelector('[name="password"]');
+      const password2Input = formEl.querySelector('[name="password2"]');
+      
+      function validatePasswordMatch() {
+        if (passwordInput && password2Input) {
+          if (passwordInput.value && passwordInput.value !== password2Input.value) {
+            password2Input.setCustomValidity('Mật khẩu không khớp');
+          } else {
+            password2Input.setCustomValidity('');
+          }
+        }
+      }
+      
+      if (passwordInput && password2Input) {
+        passwordInput.addEventListener('input', validatePasswordMatch);
+        password2Input.addEventListener('input', validatePasswordMatch);
+      }
+      
       formEl.addEventListener('submit', async (e)=>{
         e.preventDefault();
+        
+        // Validate password match before submit
+        validatePasswordMatch();
+        if (!formEl.checkValidity()) {
+          formEl.classList.add('was-validated');
+          return;
+        }
+        
         const id = formEl.getAttribute('data-id');
         const fd = new FormData(formEl);
-        const res = await fetch(`{% url 'adminpanel:admin_doctor_update' 0 %}`.replace('/0/','/' + id + '/'), {method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}'}, body:fd});
-        const data = await res.json();
-        if(data.ok){ location.reload(); } else { /* Error occurred */ }
+        
+        // Unformat consultation fee before sending
+        const feeInput = formEl.querySelector('.vnd-input');
+        if (feeInput) {
+          const feeValue = fd.get('consultation_fee');
+          if (feeValue) {
+            fd.set('consultation_fee', unformat(feeValue));
+          }
+        }
+        
+        try {
+          const res = await fetch(`{% url 'adminpanel:admin_doctor_update' 0 %}`.replace('/0/','/' + id + '/'), {
+            method:'POST', 
+            headers:{'X-CSRFToken':'{{ csrf_token }}'}, 
+            body:fd
+          });
+          
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ msg: 'Có lỗi xảy ra' }));
+            if (window.showMessage) {
+              window.showMessage('error', errorData.msg || 'Có lỗi xảy ra');
+            } else {
+              alert(errorData.msg || 'Có lỗi xảy ra');
+            }
+            return;
+          }
+          
+          const data = await res.json();
+          if(data.ok){ 
+            if (window.showMessage) {
+              window.showMessage('success', 'Đã cập nhật bác sĩ thành công');
+            }
+            location.reload(); 
+          } else {
+            if (window.showMessage) {
+              window.showMessage('error', data.msg || 'Có lỗi xảy ra');
+            } else {
+              alert(data.msg || 'Có lỗi xảy ra');
+            }
+          }
+        } catch (error) {
+          console.error('Request failed:', error);
+          if (window.showMessage) {
+            window.showMessage('error', 'Có lỗi xảy ra khi cập nhật');
+          } else {
+            alert('Có lỗi xảy ra khi cập nhật');
+          }
+        }
       });
     });
   })();
