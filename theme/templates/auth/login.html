@@ -8,23 +8,210 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     
-    <!-- Bootstrap CSS -->
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
-    <!-- Custom Auth CSS -->
-    <link rel="stylesheet" href="{% static 'css/auth.css' %}?v=1.6">
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd; /* DUT Blue or Hospital Blue */
+            --primary-hover: #0b5ed7;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg-surface: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            height: 100vh;
+            overflow: hidden; /* Ngăn scroll bar nếu không cần thiết */
+        }
+
+        .login-wrapper {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+        }
+
+        /* --- LEFT SIDE: BRANDING & IMAGE --- */
+        .login-brand-side {
+            flex: 1;
+            background-image: linear-gradient(135deg, rgba(13, 110, 253, 0.9), rgba(13, 253, 233, 0.4)), url("{% static 'images/hospital-bg.jpg' %}"); /* Thay bằng ảnh thật của BV */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 4rem;
+            color: white;
+            position: relative;
+        }
+        
+        /* Fallback nếu chưa có ảnh */
+        .login-brand-side::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0f172a;
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+        }
+
+        .brand-logo-img {
+            height: 80px;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .brand-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .brand-desc {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* --- RIGHT SIDE: FORM --- */
+        .login-form-side {
+            width: 100%;
+            max-width: 550px;
+            background: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3rem;
+            position: relative;
+            box-shadow: -10px 0 20px rgba(0,0,0,0.05);
+        }
+
+        .form-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .form-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-subtitle {
+            color: var(--text-muted);
+        }
+
+        /* Custom Floating Input Styling */
+        .form-floating > .form-control {
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            padding-left: 1rem;
+        }
+        
+        .form-floating > .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+        }
+
+        .form-floating > label {
+            padding-left: 1rem;
+        }
+
+        .input-group-text {
+            background: transparent;
+            border-left: none;
+            border-radius: 0 0.5rem 0.5rem 0;
+            cursor: pointer;
+        }
+        
+        .password-field {
+            border-right: none;
+            border-radius: 0.5rem 0 0 0.5rem !important;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.8rem;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--primary-color);
+            border: none;
+            color: white;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-login:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+        }
+
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+        }
+
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .auth-divider span {
+            padding: 0 1rem;
+            font-size: 0.875rem;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .auth-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 992px) {
+            .login-brand-side {
+                display: none; /* Ẩn ảnh trên mobile để tập trung vào form */
+            }
+            .login-form-side {
+                max-width: 100%;
+                padding: 2rem;
+            }
+        }
+    </style>
 </head>
 
-<body class="auth-body">
-    <!-- Message container will be created by JavaScript -->
-    <div id="message-container"></div>
+<body>
+    <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
     
-    <!-- Django Messages as JSON -->
     {% if messages %}
     <script type="application/json" id="django-messages">
         [
@@ -37,73 +224,96 @@
         ]
     </script>
     {% endif %}
-    <div class="auth-container">
-        <div class="auth-card">
-            <!-- Header -->
-            <div class="auth-header">
-                <h1 class="auth-title">Đăng nhập</h1>
-                <p class="auth-subtitle">Chào mừng bạn quay trở lại DUT Hospital</p>
+
+    <div class="login-wrapper">
+        <div class="login-brand-side">
+            <div class="brand-content">
+                <img src="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}" alt="DUT Logo" class="brand-logo-img">
+                <h1 class="brand-title">Hệ thống Quản lý<br>DUT Hospital</h1>
+                <p class="brand-desc">Nền tảng y tế số hóa, mang lại trải nghiệm chăm sóc sức khỏe tốt nhất cho cán bộ và sinh viên.</p>
+            </div>
+        </div>
+
+        <div class="login-form-side">
+            <div class="form-header">
+                <h2 class="form-title">Đăng nhập</h2>
+                <p class="form-subtitle">Chào mừng trở lại! Vui lòng nhập thông tin.</p>
             </div>
 
-            <!-- Login Form -->
             <form method="post" class="auth-form">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next|default:'' }}">
-                <div class="form-group">
-                    <label for="login_field" class="form-label">
-                        <i class="bi bi-envelope"></i>
-                        Email hoặc số điện thoại
-                    </label>
+                
+                <div class="form-floating mb-3">
                     <input type="text" 
                            class="form-control" 
                            id="login_field" 
                            name="login_field" 
-                           placeholder="Nhập email hoặc số điện thoại"
+                           placeholder="name@example.com"
                            required>
+                    <label for="login_field">Email hoặc số điện thoại</label>
                 </div>
 
-                <div class="form-group">
-                    <label for="password" class="form-label">
-                        <i class="bi bi-lock"></i>
-                        Mật khẩu
-                    </label>
-                    <div class="password-input">
+                <div class="input-group mb-3">
+                    <div class="form-floating flex-grow-1">
                         <input type="password" 
-                               class="form-control" 
+                               class="form-control password-field" 
                                id="password" 
                                name="password" 
-                               placeholder="Nhập mật khẩu"
+                               placeholder="Mật khẩu"
                                required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-                            <i class="bi bi-eye" id="password-icon"></i>
-                        </button>
+                        <label for="password">Mật khẩu</label>
                     </div>
+                    <span class="input-group-text border-start-0 bg-white" onclick="togglePassword('password')">
+                        <i class="bi bi-eye-slash text-muted" id="password-icon"></i>
+                    </span>
                 </div>
 
-                <button type="submit" class="btn-auth btn-login">
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    Đăng nhập
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberMe">
+                        <label class="form-check-label text-muted small" for="rememberMe">
+                            Ghi nhớ đăng nhập
+                        </label>
+                    </div>
+                    <a href="#" class="text-decoration-none small text-muted hover-primary">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Đăng nhập
                 </button>
+
             </form>
 
-            <!-- Divider -->
-            <div class="auth-divider">
-                <span>hoặc</span>
-            </div>
-
-            <!-- Register Link -->
             <div class="auth-footer">
-                <p>Chưa có tài khoản? 
+                <p class="text-muted">Chưa có tài khoản? 
                     <a href="{% url 'theme:register' %}" class="auth-link">Đăng ký ngay</a>
                 </p>
+            </div>
+            
+            <div class="mt-5 text-center">
+                <p class="text-muted small" style="font-size: 0.75rem;">&copy; 2025 DUT Hospital. All rights reserved.</p>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/message-system.js' %}"></script>
     <script src="{% static 'js/common-utils.js' %}"></script>
-    <script src="{% static 'js/auth-forms.js' %}"></script>
+    <script>
+        function togglePassword(fieldId) {
+            const input = document.getElementById(fieldId);
+            const icon = document.getElementById(fieldId + '-icon');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            } else {
+                input.type = "password";
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            }
+        }
+    </script>
 </body>
 </html>

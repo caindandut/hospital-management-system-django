@@ -5,15 +5,17 @@
 <div class="container">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h5 class="mb-0">Quản lý bệnh nhân</h5>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="openCreate()"><i class="bi bi-plus-lg me-1"></i>Thêm</button>
+    <button class="btn btn-primary " data-bs-toggle="modal" data-bs-target="#patientModal" onclick="openCreate()"><i class="bi bi-plus-circle me-1"></i>Thêm bệnh nhân</button>
   </div>
 
   <form class="row g-2 mb-3">
     <div class="col-md-6">
       <input class="form-control" name="q" value="{{ q }}" placeholder="Tìm theo họ tên, email, SĐT hoặc CCCD">
     </div>
-    <div class="col-md-2">
-      <button class="btn btn-outline-secondary w-100">Tìm</button>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary">
+            <i class="bi bi-search"></i> Tìm kiếm
+      </button>
     </div>
   </form>
 

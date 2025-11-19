@@ -107,7 +107,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'clinic_db',
         'USER': 'root',
-        'PASSWORD': 'Ledangkhanh@2005',  # Thay đổi password MySQL của bạn ở đây
+        'PASSWORD': 'hien01012005',  # Thay đổi password MySQL của bạn ở đây
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'OPTIONS': {

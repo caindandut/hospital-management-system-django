@@ -2,29 +2,168 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <title>Đăng ký - DUT Hospital</title>
+    <title>Đăng ký tài khoản - DUT Hospital</title>
     <link rel="icon" href="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}" type="image/png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     
-    <!-- Bootstrap CSS -->
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
-    <!-- Custom Auth CSS -->
-    <link rel="stylesheet" href="{% static 'css/auth.css' %}?v=1.6">
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --primary-hover: #0b5ed7;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg-surface: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Ngăn scroll body chính */
+        }
+
+        .auth-wrapper {
+            height: 100vh;
+            width: 100%;
+            display: flex;
+        }
+
+        /* --- LEFT SIDE: BRANDING --- */
+        .auth-brand-side {
+            flex: 1;
+            /* Giữ nguyên style như trang Login để đồng bộ */
+            background-image: 
+                linear-gradient(135deg, rgba(0, 51, 102, 0.9), rgba(0, 153, 204, 0.8)), 
+                url("https://images.unsplash.com/photo-1516574187841-693017404998?q=80&w=2070&auto=format&fit=crop");
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 4rem;
+            color: white;
+            position: relative;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .brand-logo-img {
+            height: 70px;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .brand-desc {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* --- RIGHT SIDE: FORM --- */
+        .auth-form-side {
+            width: 100%;
+            max-width: 600px; /* Rộng hơn xíu so với login vì form 2 cột */
+            background: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: -10px 0 20px rgba(0,0,0,0.05);
+            overflow-y: auto; /* Cho phép cuộn dọc nếu form dài */
+            height: 100vh;
+        }
+        
+        .auth-form-content {
+            padding: 3rem;
+            margin: auto 0; /* Căn giữa theo chiều dọc nếu form ngắn, tự đẩy nếu dài */
+            width: 100%;
+        }
+
+        .form-header { margin-bottom: 2rem; }
+        .form-title { font-size: 2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; }
+        .form-subtitle { color: var(--text-muted); }
+
+        /* Floating Input Styling */
+        .form-floating > .form-control {
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+        }
+        .form-floating > .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+        }
+        
+        .input-group-text {
+            background: transparent;
+            border-left: none;
+            border-radius: 0 0.5rem 0.5rem 0;
+            cursor: pointer;
+        }
+        
+        .password-field {
+            border-right: none;
+            border-radius: 0.5rem 0 0 0.5rem !important;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 0.8rem;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--primary-color);
+            border: none;
+            color: white;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+        .btn-register:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+        }
+
+        .auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.95rem; }
+        .auth-link { color: var(--primary-color); text-decoration: none; font-weight: 600; }
+        .auth-link:hover { text-decoration: underline; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 992px) {
+            .auth-brand-side { display: none; }
+            .auth-form-side { max-width: 100%; }
+            .auth-form-content { padding: 2rem; }
+        }
+    </style>
 </head>
 
-<body class="auth-body">
-    <!-- Message container will be created by JavaScript -->
-    <div id="message-container"></div>
+<body>
+    <div id="message-container" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
     
-    <!-- Django Messages as JSON -->
     {% if messages %}
     <script type="application/json" id="django-messages">
         [
@@ -37,147 +176,124 @@
         ]
     </script>
     {% endif %}
-    <div class="auth-container register">
-        <div class="auth-card">
-            <!-- Header -->
-            <div class="auth-header">
-                <h1 class="auth-title">Đăng ký</h1>
-                <p class="auth-subtitle">Tạo tài khoản mới để sử dụng dịch vụ của DUT Hospital</p>
+
+    <div class="auth-wrapper">
+        <div class="auth-brand-side">
+            <div class="brand-content">
+                <img src="{% static 'images/Logo-Truong-Dai-hoc-Bach-khoa-Dai-hoc-Da-Nang-DUT.webp' %}" alt="DUT Logo" class="brand-logo-img">
+                <h1 class="brand-title">Tham gia cùng<br>DUT Hospital</h1>
+                <p class="brand-desc">Hệ thống y tế thông minh, kết nối bác sĩ và bệnh nhân. Tạo tài khoản để bắt đầu hành trình chăm sóc sức khỏe của bạn.</p>
+                
+                <div class="mt-4 pt-4 border-top border-white border-opacity-25">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-shield-check fs-2"></i>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Bảo mật tuyệt đối</h6>
+                            <small class="opacity-75">Thông tin y tế của bạn được mã hóa an toàn.</small>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
 
-            <!-- Register Form -->
-            <form method="post" class="auth-form">
-                {% csrf_token %}
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="first_name" class="form-label">
-                                <i class="bi bi-person"></i>
-                                Họ
-                            </label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="first_name" 
-                                   name="first_name" 
-                                   placeholder="Nhập họ"
-                                   required>
+        <div class="auth-form-side">
+            <div class="auth-form-content">
+                <div class="form-header">
+                    <h2 class="form-title">Tạo tài khoản</h2>
+                    <p class="form-subtitle">Điền thông tin bên dưới để đăng ký thành viên mới.</p>
+                </div>
+
+                <form method="post" class="auth-form needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Họ" required>
+                                <label for="first_name">Họ</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Tên" required>
+                                <label for="last_name">Tên</label>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="last_name" class="form-label">
-                                <i class="bi bi-person"></i>
-                                Tên
-                            </label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="last_name" 
-                                   name="last_name" 
-                                   placeholder="Nhập tên"
-                                   required>
+
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+                        <label for="email">Địa chỉ Email</label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Số điện thoại" required>
+                        <label for="phone">Số điện thoại</label>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <div class="form-floating flex-grow-1">
+                            <input type="password" class="form-control password-field" id="password1" name="password1" placeholder="Mật khẩu" required>
+                            <label for="password1">Mật khẩu</label>
                         </div>
+                        <span class="input-group-text border-start-0 bg-white" onclick="togglePassword('password1')">
+                            <i class="bi bi-eye-slash text-muted" id="password1-icon"></i>
+                        </span>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <label for="email" class="form-label">
-                        <i class="bi bi-envelope"></i>
-                        Email
-                    </label>
-                    <input type="email" 
-                           class="form-control" 
-                           id="email" 
-                           name="email" 
-                           placeholder="Nhập địa chỉ email"
-                           required>
-                </div>
-
-                <div class="form-group">
-                    <label for="phone" class="form-label">
-                        <i class="bi bi-telephone"></i>
-                        Số điện thoại
-                    </label>
-                    <input type="tel" 
-                           class="form-control" 
-                           id="phone" 
-                           name="phone" 
-                           placeholder="Nhập số điện thoại"
-                           required>
-                </div>
-
-                <!-- Username field removed as per request: users will log in with email or phone -->
-
-                <div class="form-group">
-                    <label for="password1" class="form-label">
-                        <i class="bi bi-lock"></i>
-                        Mật khẩu
-                    </label>
-                    <div class="password-input">
-                        <input type="password" 
-                               class="form-control" 
-                               id="password1" 
-                               name="password1" 
-                               placeholder="Nhập mật khẩu"
-                               required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('password1')">
-                            <i class="bi bi-eye" id="password1-icon"></i>
-                        </button>
+                    <div class="input-group mb-3">
+                        <div class="form-floating flex-grow-1">
+                            <input type="password" class="form-control password-field" id="password2" name="password2" placeholder="Xác nhận mật khẩu" required>
+                            <label for="password2">Xác nhận mật khẩu</label>
+                        </div>
+                        <span class="input-group-text border-start-0 bg-white" onclick="togglePassword('password2')">
+                            <i class="bi bi-eye-slash text-muted" id="password2-icon"></i>
+                        </span>
                     </div>
-                    <!-- Password requirements UI removed as requested -->
-                </div>
 
-                <div class="form-group">
-                    <label for="password2" class="form-label">
-                        <i class="bi bi-lock-fill"></i>
-                        Xác nhận mật khẩu
-                    </label>
-                    <div class="password-input">
-                        <input type="password" 
-                               class="form-control" 
-                               id="password2" 
-                               name="password2" 
-                               placeholder="Nhập lại mật khẩu"
-                               required>
-                        <button type="button" class="password-toggle" onclick="togglePassword('password2')">
-                            <i class="bi bi-eye" id="password2-icon"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div class="form-check">
+                    <div class="form-check mb-4">
                         <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
-                        <label class="form-check-label" for="terms">
-                            Tôi đồng ý với <a href="#" class="terms-link">Điều khoản sử dụng</a> và <a href="#" class="terms-link">Chính sách bảo mật</a>
+                        <label class="form-check-label text-muted small" for="terms">
+                            Tôi đồng ý với <a href="#" class="text-primary text-decoration-none">Điều khoản dịch vụ</a> và <a href="#" class="text-primary text-decoration-none">Chính sách bảo mật</a> của DUT Hospital.
                         </label>
                     </div>
+
+                    <button type="submit" class="btn-register">
+                        <i class="bi bi-person-plus me-2"></i> Đăng ký tài khoản
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    <p class="text-muted">Đã có tài khoản? 
+                        <a href="{% url 'theme:login' %}" class="auth-link">Đăng nhập ngay</a>
+                    </p>
                 </div>
-
-                <button type="submit" class="btn-auth btn-register">
-                    <i class="bi bi-person-plus"></i>
-                    Đăng ký
-                </button>
-            </form>
-
-            <!-- Divider -->
-            <div class="auth-divider">
-                <span>hoặc</span>
-            </div>
-
-            <!-- Login Link -->
-            <div class="auth-footer">
-                <p>Đã có tài khoản? 
-                    <a href="{% url 'theme:login' %}" class="auth-link">Đăng nhập ngay</a>
-                </p>
+                
+                <div class="mt-5 text-center">
+                    <p class="text-muted small" style="font-size: 0.75rem;">&copy; 2025 DUT Hospital. Secured by IT Team.</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'js/message-system.js' %}"></script>
     <script src="{% static 'js/common-utils.js' %}"></script>
-    <script src="{% static 'js/auth-forms.js' %}"></script>
-    <script src="{% static 'js/main.js' %}"></script>
+    <script>
+        // Script xử lý ẩn hiện password cho nhiều field
+        function togglePassword(fieldId) {
+            const input = document.getElementById(fieldId);
+            const icon = document.getElementById(fieldId + '-icon');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            } else {
+                input.type = "password";
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            }
+        }
+    </script>
 </body>
 </html>
