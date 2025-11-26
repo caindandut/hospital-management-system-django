@@ -205,72 +205,113 @@ def validate_password(password):
 
 def register_view(request):
     """Register view"""
+    # Initialize form data to preserve user input on validation errors
+    form_data = {
+        'first_name': '',
+        'last_name': '',
+        'email': '',
+        'phone': '',
+    }
+    
     if request.method == 'POST':
         # username will be auto-generated
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        phone = request.POST.get('phone')
+        email = request.POST.get('email', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        phone = request.POST.get('phone', '').strip()
         terms = request.POST.get('terms')
         
+        # Preserve form data for re-display on error
+        form_data = {
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'phone': phone,
+        }
+        
         # Validation
+        has_error = False
         if not terms:
             messages.error(request, 'Vui lòng đồng ý với điều khoản sử dụng!')
+            has_error = True
         elif password1 != password2:
             messages.error(request, 'Mật khẩu xác nhận không khớp!')
+            has_error = True
         elif not email:
             messages.error(request, 'Vui lòng nhập email!')
+            has_error = True
         elif User.objects.filter(email=email).exists():
             messages.error(request, 'Email đã được sử dụng!')
+            has_error = True
         else:
             # Validate password strength
             password_errors = validate_password(password1)
             if password_errors:
                 for error in password_errors:
                     messages.error(request, error)
-            else:
-                try:
-                    # Prefer using phone as username if provided, otherwise use email local-part
-                    if phone:
-                        base_username = re.sub(r"\D", "", phone)  # keep digits only
-                    else:
-                        base_username = (email.split('@')[0] if '@' in email else email)
-                    username = generate_unique_username(base_username)
+                has_error = True
+        
+        if not has_error:
+            try:
+                # Prefer using phone as username if provided, otherwise use email local-part
+                if phone:
+                    base_username = re.sub(r"\D", "", phone)  # keep digits only
+                else:
+                    base_username = (email.split('@')[0] if '@' in email else email)
+                username = generate_unique_username(base_username)
+                
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password1,
+                    first_name=first_name,
+                    last_name=last_name
+                )
+                
+                # Mirror into external users table if available (simple plaintext password_hash as per your data)
+                if external_users_available():
+                    full_name = f"{first_name} {last_name}".strip()
+                    if not full_name:
+                        # Fallback to email if name is empty
+                        full_name = email.split('@')[0] if '@' in email else email
                     
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email,
-                        password=password1,
-                        first_name=first_name,
-                        last_name=last_name
-                    )
-                    
-                    # Mirror into external users table if available (simple plaintext password_hash as per your data)
-                    if external_users_available():
-                        full_name = f"{first_name} {last_name}".strip()
-                        try:
-                            ExternalUser.objects.create(
-                                email=email,
-                                password_hash=password1,
-                                full_name=full_name,
-                                phone=phone or None,
-                                role='PATIENT',
-                                is_active=1,
-                                created_at=timezone.now(),
-                                updated_at=timezone.now(),
-                            )
-                        except Exception:
-                            # Ignore if schema differs or row already exists
-                            pass
-                    
-                    messages.success(request, 'Đăng ký thành công! Vui lòng đăng nhập.')
-                    return redirect('theme:login')
-                except Exception as e:
-                    messages.error(request, 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại!')
+                    try:
+                        # Check if ExternalUser already exists
+                        ext_user, created = ExternalUser.objects.get_or_create(
+                            email=email,
+                            defaults={
+                                'password_hash': password1,
+                                'full_name': full_name,
+                                'phone': phone or None,
+                                'role': 'PATIENT',
+                                'is_active': 1,
+                                'created_at': timezone.now(),
+                                'updated_at': timezone.now(),
+                            }
+                        )
+                        # If user already exists, update the information
+                        if not created:
+                            ext_user.full_name = full_name
+                            if phone:
+                                ext_user.phone = phone
+                            ext_user.password_hash = password1
+                            ext_user.updated_at = timezone.now()
+                            ext_user.save(update_fields=['full_name', 'phone', 'password_hash', 'updated_at'])
+                    except Exception as e:
+                        # Log error but don't fail registration
+                        import traceback
+                        print(f"Error creating/updating ExternalUser: {e}")
+                        print(traceback.format_exc())
+                        pass
+                
+                messages.success(request, 'Đăng ký thành công! Vui lòng đăng nhập.')
+                return redirect('theme:login')
+            except Exception as e:
+                messages.error(request, 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại!')
     
-    return render(request, 'auth/register.html')
+    return render(request, 'auth/register.html', {'form_data': form_data})
 
 def logout_view(request):
     """Logout view"""

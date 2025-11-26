@@ -825,14 +825,14 @@ def doctor_today(request):
         return redirect("theme:home")
     
     # Build query for today's appointments with invoice status
-    from django.db.models import OuterRef, Subquery
+    from django.db.models import OuterRef, Subquery, CharField
     from billing.models import Invoices
     
-    inv_sub = Invoices.objects.filter(appointment_id=OuterRef("pk")).values("status")[:1]
+    inv_sub = Invoices.objects.filter(appointment_id=OuterRef("pk")).values_list("status", flat=True)[:1]
     qs = (Appointments.objects
           .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
           .filter(doctor__user_id=ext_user.id, appointment_at__range=(start_dt, end_dt))
-          .annotate(invoice_status=Subquery(inv_sub))
+          .annotate(invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)))
           .order_by("appointment_at"))
     
     # Build simple stats for today

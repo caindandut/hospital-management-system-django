@@ -209,25 +209,25 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Họ" required>
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Họ" value="{{ form_data.first_name|default:'' }}" required>
                                 <label for="first_name">Họ</label>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating">
-                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Tên" required>
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Tên" value="{{ form_data.last_name|default:'' }}" required>
                                 <label for="last_name">Tên</label>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-floating mb-3">
-                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" value="{{ form_data.email|default:'' }}" required>
                         <label for="email">Địa chỉ Email</label>
                     </div>
 
                     <div class="form-floating mb-3">
-                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Số điện thoại" required>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Số điện thoại" value="{{ form_data.phone|default:'' }}" required>
                         <label for="phone">Số điện thoại</label>
                     </div>
 

@@ -196,6 +196,7 @@
         </div>
 
         <!-- Appointments Table -->
+{% if appointments %}
         <div class="card card-soft">
             <div class="card-header">
                 <h5 class="mb-0">Danh sách lịch hẹn</h5>
@@ -277,20 +278,18 @@
                                 </div>
                             </td>
                         </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="bi bi-calendar-x fs-1"></i>
-                                    <p class="mt-2">Không có lịch hẹn nào</p>
-                                </div>
-                            </td>
-                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-calendar-x fs-1"></i>
+            <h5 class="mt-2">Chưa có lịch hẹn nào</h5>
+            <p class="mb-0">Hiện tại không có lịch hẹn nào cần xử lý.</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Cancel Modals -->
