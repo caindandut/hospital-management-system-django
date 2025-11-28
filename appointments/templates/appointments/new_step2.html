@@ -214,9 +214,10 @@
                                         {% else %}
                                             <div class="col-auto">
                                                 <button type="button"
-                                                        class="btn btn-slot disabled btn-sm text-start py-1"
+                                                        class="btn btn-slot disabled-slot btn-sm text-start py-1"
                                                         tabindex="-1" 
-                                                        aria-disabled="true">
+                                                        aria-disabled="true"
+                                                        disabled>
                                                     <i class="bi bi-clock me-1"></i> {{ slot.start }} - {{ slot.end }}
                                                 </button>
                                             </div>
@@ -327,6 +328,7 @@
         .btn-slot.disabled { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
         .slot-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
         .slot-btn.active { background-color: #16a34a !important; color: #ffffff !important; border-color: #16a34a !important; }
+        .disabled-slot { background: #f1f5f9 !important; color: #94a3b8 !important; border-color: #e2e8f0 !important; box-shadow: none !important; cursor: not-allowed; }
 
         /* Legends */
         .legend { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: middle; }

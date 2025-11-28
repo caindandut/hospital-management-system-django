@@ -13,15 +13,8 @@ class Specialty(models.Model):
         return self.name
 
 class DoctorRankFee(models.Model):
-    RANK_CHOICES = [
-        ("BS","Bác sĩ"),
-        ("ThS","Thạc sĩ"),
-        ("TS","Tiến sĩ"),
-        ("PGS","Phó giáo sư"),
-        ("GS","Giáo sư"),
-    ]
     id = models.BigAutoField(primary_key=True)
-    rank = models.CharField(max_length=10, choices=RANK_CHOICES, unique=True)
+    rank = models.CharField(max_length=50, unique=True)
     default_fee = models.DecimalField(max_digits=12, decimal_places=2)
     
     class Meta:

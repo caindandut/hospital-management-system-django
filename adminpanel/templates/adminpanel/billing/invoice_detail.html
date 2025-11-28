@@ -50,7 +50,10 @@
   </div>
 
   <div class="text-end">
-    <div class="fs-5"><b>Tổng cộng:</b> {{ inv.amount_due|vnd }}</div>
+    <div class="fs-5">
+      <b>Tổng cộng:</b>
+      {{ total|default:inv.subtotal|vnd }}
+    </div>
   </div>
   <a href="{% url 'adminpanel:admin_invoice_list' %}" class="btn btn-secondary mt-3">Về danh sách</a>
 </div>

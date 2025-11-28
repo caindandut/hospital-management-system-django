@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db import IntegrityError
 from django.utils import timezone
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from .models import Schedules, Appointments
 from doctors.models import Doctors
 from accounts.models import Users
@@ -291,12 +291,32 @@ def new_step1(request):
     
     # Lấy danh sách chuyên khoa
     specialties = Specialties.objects.all()
+
+    # Xử lý ngày được chọn (mặc định hôm nay, giới hạn trong 5 ngày tới)
+    tz_now = timezone.localtime(timezone.now())
+    today = tz_now.date()
+    max_date = today + timedelta(days=5)
+    raw_selected_date = request.POST.get('date') if request.method == 'POST' else request.GET.get('date')
+
+    if raw_selected_date:
+        try:
+            selected_date = datetime.strptime(raw_selected_date, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = today
+    else:
+        selected_date = today
+
+    if selected_date < today:
+        selected_date = today
+    elif selected_date > max_date:
+        selected_date = max_date
     
     # Xử lý POST - chọn bác sĩ
     if request.method == 'POST':
         doctor_id = request.POST.get('doctor_id')
         if doctor_id:
-            return redirect(f'/appointments/new/slots/?doctor_id={doctor_id}')
+            selected_date_str = selected_date.strftime('%Y-%m-%d')
+            return redirect(f'/appointments/new/slots/?doctor_id={doctor_id}&date={selected_date_str}')
         else:
             messages.error(request, 'Vui lòng chọn bác sĩ.')
     
@@ -308,23 +328,27 @@ def new_step1(request):
     from django.db.models import Case, When, IntegerField, Value, CharField, F, Subquery, OuterRef
     from adminpanel.models import DoctorRankFee
     
-    # Subquery để lấy giá từ DoctorRankFee
+    # Subquery để lấy giá từ DoctorRankFee dựa trên rank của Doctors
     rank_fee_subquery = Subquery(
-        DoctorRankFee.objects.filter(rank=OuterRef('settings__degree_title'))
+        DoctorRankFee.objects.filter(rank__iexact=OuterRef('rank'))
         .values('default_fee')[:1]
     )
     
-    degree_title = F('settings__degree_title')
+    # Lấy giá từ DoctorRankFee dựa trên rank, nếu không có thì dùng consultation_fee, nếu không có thì mặc định 200000
+    from django.db.models.functions import Cast
     fee_order = Case(
-        When(settings__degree_title__isnull=False, then=rank_fee_subquery),
+        When(rank__isnull=False, then=rank_fee_subquery),
+        When(consultation_fee__isnull=False, then=Cast('consultation_fee', IntegerField())),
         default=Value(200000),
         output_field=IntegerField(),
     )
+    
+    # Label hiển thị học vị từ rank
     degree_label = Case(
-        When(settings__degree_title="ThS", then=Value("ThS")),
-        When(settings__degree_title="TS",  then=Value("TS")),
-        When(settings__degree_title="PGS", then=Value("PGS")),
-        When(settings__degree_title="GS",  then=Value("GS")),
+        When(rank="ThS", then=Value("ThS")),
+        When(rank="TS",  then=Value("TS")),
+        When(rank="PGS", then=Value("PGS")),
+        When(rank="GS",  then=Value("GS")),
         default=Value("BS"),
         output_field=CharField(),
     )
@@ -334,6 +358,12 @@ def new_step1(request):
         .annotate(effective_fee=fee_order, degree_label=degree_label)
         .order_by('effective_fee', 'user__full_name')
     )
+
+    # Chỉ hiển thị bác sĩ có lịch mở trong ngày đã chọn
+    doctors_query = doctors_query.filter(
+        schedules__work_date=selected_date,
+        schedules__status=ScheduleStatus.OPEN
+    ).distinct()
     
     if selected_specialty_id:
         doctors_query = doctors_query.filter(specialty_id=selected_specialty_id)
@@ -349,12 +379,16 @@ def new_step1(request):
         'specialties': specialties,
         'doctors': doctors,
         'selected_specialty_id': selected_specialty_id,
+        'selected_date': selected_date,
+        'min_date': today,
+        'max_date': max_date,
     }
     
     # Debug info
     print(f"DEBUG: Specialties count: {specialties.count()}")
     print(f"DEBUG: Doctors count: {doctors.paginator.count}")
     print(f"DEBUG: Selected specialty: {selected_specialty_id}")
+    print(f"DEBUG: Selected date: {selected_date}")
     
     return render(request, 'appointments/new_step1.html', context)
 
@@ -593,6 +627,16 @@ def new_step3(request):
             
             # Tạo appointment (chống race-condition)
             appointment_datetime = datetime.combine(appointment_date, appointment_time)
+
+            # Xóa bản ghi CANCELLED cũ để giải phóng unique constraint
+            (
+                Appointments.objects.filter(
+                    doctor=doctor,
+                    appointment_at=appointment_datetime,
+                    status=ApptStatus.CANCELLED,
+                ).delete()
+            )
+
             try:
                 appointment = Appointments.objects.create(
                     patient=patient_profile,
@@ -639,21 +683,8 @@ def new_step3(request):
         messages.error(request, 'Không tìm thấy lịch làm việc phù hợp.')
         return redirect(f'/appointments/new/slots/?doctor_id={doctor_id}&date={appointment_date.strftime("%Y-%m-%d")}')
     
-    # Compute effective fee based on degree_title
-    from django.db.models import Case, When, IntegerField, Value
-    fee_case = Case(
-        When(settings__degree_title="ThS", then=Value(200000)),
-        When(settings__degree_title="TS",  then=Value(500000)),
-        When(settings__degree_title="PGS", then=Value(900000)),
-        When(settings__degree_title="GS",  then=Value(1200000)),
-        default=Value(200000),
-        output_field=IntegerField(),
-    )
-    try:
-        doc_with_fee = Doctors.objects.select_related('settings').annotate(effective_fee=fee_case).get(id=doctor_id)
-        effective_fee = doc_with_fee.effective_fee
-    except Exception:
-        effective_fee = None
+    from doctors.pricing import get_consultation_fee
+    effective_fee = get_consultation_fee(doctor)
 
     context = {
         'title': 'Đặt lịch hẹn - Bước 3',
@@ -693,23 +724,36 @@ def my_appointments(request):
         patient_profile = PatientProfiles.objects.get(user=users_instance)
         
         # Lấy danh sách appointments
-        from django.db.models import Case, When, IntegerField, Value
+        from django.db.models import Case, When, IntegerField, Value, Subquery, OuterRef, CharField
+        from django.db.models.functions import Cast, Upper
+        from adminpanel.models import DoctorRankFee
+        from billing.models import Invoices
+
+        rank_fee_subquery = Subquery(
+            DoctorRankFee.objects.filter(rank__iexact=OuterRef('doctor__rank'))
+            .values('default_fee')[:1]
+        )
+
         fee_case = Case(
-            When(doctor__settings__degree_title="ThS", then=Value(200000)),
-            When(doctor__settings__degree_title="TS",  then=Value(500000)),
-            When(doctor__settings__degree_title="PGS", then=Value(900000)),
-            When(doctor__settings__degree_title="GS",  then=Value(1200000)),
+            When(doctor__rank__isnull=False, then=rank_fee_subquery),
+            When(doctor__consultation_fee__isnull=False, then=Cast('doctor__consultation_fee', IntegerField())),
             default=Value(200000),
             output_field=IntegerField(),
         )
 
-        appointments = Appointments.objects.filter(
-            patient=patient_profile
-        ).select_related(
-            'doctor__user', 'doctor__specialty', 'schedule'
-        ).annotate(
-            effective_fee=fee_case
-        ).order_by('-appointment_at')
+        inv_sub = Invoices.objects.filter(
+            appointment_id=OuterRef("pk")
+        ).values_list("status", flat=True)[:1]
+
+        appointments = (
+            Appointments.objects.filter(patient=patient_profile)
+            .select_related('doctor__user', 'doctor__specialty', 'schedule')
+            .annotate(
+                effective_fee=fee_case,
+                invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)),
+            )
+            .order_by('-appointment_at')
+        )
         
         # Pagination
         paginator = Paginator(appointments, 10)  # 10 appointments per page
@@ -829,21 +873,31 @@ def doctor_today(request):
     from billing.models import Invoices
     
     inv_sub = Invoices.objects.filter(appointment_id=OuterRef("pk")).values_list("status", flat=True)[:1]
-    qs = (Appointments.objects
-          .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
-          .filter(doctor__user_id=ext_user.id, appointment_at__range=(start_dt, end_dt))
-          .annotate(invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)))
-          .order_by("appointment_at"))
+    base_qs = (Appointments.objects
+               .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
+               .filter(doctor__user_id=ext_user.id, appointment_at__range=(start_dt, end_dt))
+               .annotate(invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)))
+               .order_by("appointment_at"))
     
     # Build simple stats for today
     from django.db.models import Count, Q
-    stats = qs.aggregate(
+    stats = base_qs.aggregate(
         total=Count("id"),
         confirmed=Count("id", filter=Q(status="CONFIRMED")),
         completed=Count("id", filter=Q(status="COMPLETED")),
     )
     
-    return render(request, "appointments/doctor_today.html", {"appts": qs, "stats": stats})
+    search_query = (request.GET.get("q") or "").strip()
+    if search_query:
+        qs = base_qs.filter(patient__user__full_name__icontains=search_query)
+    else:
+        qs = base_qs
+    
+    return render(
+        request,
+        "appointments/doctor_today.html",
+        {"appts": qs, "stats": stats, "search_query": search_query},
+    )
 
 @doctor_owns_appointment
 def appt_start(request, pk):

@@ -15,6 +15,26 @@ class RankFeeForm(forms.ModelForm):
     class Meta:
         model = DoctorRankFee
         fields = ["rank", "default_fee"]
+        widgets = {
+            "rank": forms.TextInput(attrs={"placeholder": "Ví dụ: BS, CKI...", "class": "form-control"}),
+        }
+
+    def clean_rank(self):
+        rank = (self.cleaned_data.get("rank") or "").strip().upper()
+        if not rank:
+            raise forms.ValidationError("Vui lòng nhập học vị.")
+        qs = DoctorRankFee.objects.filter(rank__iexact=rank)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Học vị này đã tồn tại.")
+        return rank
+
+    def clean_default_fee(self):
+        fee = self.cleaned_data.get("default_fee") or 0
+        if fee < 0:
+            raise forms.ValidationError("Phí mặc định phải lớn hơn hoặc bằng 0.")
+        return fee
 
 class DrugForm(forms.ModelForm):
     class Meta:

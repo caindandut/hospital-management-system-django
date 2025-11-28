@@ -61,10 +61,12 @@
                         data-gender="{{ p.gender|default:'' }}"
                         data-address="{{ p.address|default:'' }}"
                         data-active="{{ p.user.is_active|yesno:'true,false' }}">Sửa</button>
-                <form method="post" action="{% url 'adminpanel:admin_patient_delete' p.id %}" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
-                </form>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger btn-delete-patient"
+                        data-patient-id="{{ p.id }}"
+                        data-patient-name="{{ p.user.full_name }}">
+                  Xóa
+                </button>
               </div>
             </td>
           </tr>
@@ -152,7 +154,8 @@
   const URLS = {
     patientsList: '{% url "adminpanel:admin_patients_list" %}',
     patientUpdate: '{% url "adminpanel:admin_patient_update" 0 %}',
-    patientCreate: '{% url "adminpanel:admin_patient_create" %}'
+    patientCreate: '{% url "adminpanel:admin_patient_create" %}',
+    patientDelete: '{% url "adminpanel:admin_patient_delete" 0 %}',
   };
   </script>
   
@@ -312,6 +315,17 @@
       console.log('Submitting to:', url);
       console.log('Form data:', Object.fromEntries(fd));
       
+      function markInvalidPatientField(name, message) {
+        const input = formEl.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        const fb = input.nextElementSibling;
+        if (fb && fb.classList.contains('invalid-feedback') && message) {
+          fb.textContent = message;
+        }
+      }
+      
       try {
         const res = await fetch(url, {
           method: method,
@@ -325,14 +339,21 @@
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ message: 'Có lỗi xảy ra' }));
           console.error('Error response:', errorData);
-          throw new Error(errorData.message || 'Có lỗi xảy ra');
+          const msg = errorData.message || 'Có lỗi xảy ra';
+          if (msg.includes('Email')) {
+            markInvalidPatientField('email', msg);
+          }
+          if (msg.includes('CCCD')) {
+            markInvalidPatientField('cccd', msg);
+          }
+          throw new Error(msg);
         }
         
         const data = await res.json();
         console.log('Response data:', data);
         if (data.ok) {
           if (window.showMessage) {
-            window.showMessage('success', data.message || 'Đã lưu thay đổi');
+            window.showMessage(data.message || 'Đã lưu thay đổi', 'success');
             if (modal) {
               modal.hide();
               // Clean up backdrop after hiding
@@ -349,18 +370,25 @@
             location.reload();
           }
         } else {
+          const msg = data.message || 'Có lỗi xảy ra';
+          if (msg.includes('Email')) {
+            markInvalidPatientField('email', msg);
+          }
+          if (msg.includes('CCCD')) {
+            markInvalidPatientField('cccd', msg);
+          }
           if (window.showMessage) {
-            window.showMessage('error', data.message || 'Có lỗi xảy ra');
+            window.showMessage(msg, 'error');
           } else {
-            alert(data.message || 'Có lỗi xảy ra');
+            console.error(msg);
           }
         }
       } catch (error) {
         console.error(error);
         if (window.showMessage) {
-          window.showMessage('error', 'Có lỗi xảy ra khi lưu dữ liệu');
+          window.showMessage('Có lỗi xảy ra khi lưu dữ liệu', 'error');
         } else {
-          alert('Có lỗi xảy ra khi lưu dữ liệu');
+          console.error('Có lỗi xảy ra khi lưu dữ liệu');
         }
       }
     });
@@ -391,6 +419,57 @@
         window.history.replaceState(null, '', URLS.patientsList);
       }
     }
+
+    // Delete buttons
+    document.querySelectorAll('.btn-delete-patient').forEach(btn => {
+      btn.addEventListener('click', async function () {
+        const id = this.dataset.patientId;
+        const name = this.dataset.patientName || '';
+        if (!id) return;
+
+        const confirmMsg = name
+          ? `Bạn có chắc chắn muốn xóa bệnh nhân "${name}"?`
+          : 'Bạn có chắc chắn muốn xóa bệnh nhân này?';
+        if (!confirm(confirmMsg)) {
+          return;
+        }
+
+        const url = URLS.patientDelete.replace('/0/', '/' + id + '/');
+
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok && data.ok) {
+          if (window.showMessage) {
+            window.showMessage(data.message || 'Đã xóa bệnh nhân.', 'success');
+            setTimeout(() => location.reload(), 1200);
+          } else {
+            console.log(data.message || 'Đã xóa bệnh nhân.');
+            location.reload();
+          }
+          } else {
+            const msg = (data && data.message) || 'Không thể xóa bệnh nhân.';
+          if (window.showMessage) {
+            window.showMessage(msg, 'error');
+          } else {
+            console.error(msg);
+          }
+          }
+        } catch (err) {
+          console.error(err);
+        if (window.showMessage) {
+          window.showMessage('Có lỗi xảy ra khi xóa bệnh nhân.', 'error');
+        } else {
+          console.error('Có lỗi xảy ra khi xóa bệnh nhân.');
+        }
+        }
+      });
+    });
   });
   </script>
 

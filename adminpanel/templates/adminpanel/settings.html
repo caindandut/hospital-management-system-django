@@ -62,13 +62,7 @@
       {% csrf_token %}
       <div class="col-md-3">
         <label class="form-label">Học vị</label>
-        <select name="rank" class="form-select" required>
-          <option value="BS">Bác sĩ</option>
-          <option value="ThS">Thạc sĩ</option>
-          <option value="TS">Tiến sĩ</option>
-          <option value="PGS">Phó GS</option>
-          <option value="GS">Giáo sư</option>
-        </select>
+        <input name="rank" class="form-control text-uppercase" placeholder="VD: BS, CKI..." required>
       </div>
       <div class="col-md-3">
         <label class="form-label">Phí mặc định</label>
@@ -188,6 +182,18 @@
 
   {% if tab == 'users' %}
   <div class="card card-soft p-3">
+    <form method="get" class="row g-2 align-items-center mb-3">
+      <input type="hidden" name="tab" value="users">
+      <div class="col-md-6 col-lg-4">
+        <input type="text" name="user_q" value="{{ user_q }}" class="form-control" placeholder="Tìm theo tên, email hoặc SĐT...">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary">Tìm kiếm</button>
+        {% if user_q %}
+        <a class="btn btn-outline-secondary" href="?tab=users">Xóa</a>
+        {% endif %}
+      </div>
+    </form>
     <div class="table-responsive">
       <table class="table align-middle">
         <thead class="table-light"><tr><th>Tên</th><th>Email</th><th>Điện thoại</th><th>Vai trò</th><th>Hoạt động</th><th class="text-end">Phân quyền</th></tr></thead>

@@ -101,16 +101,6 @@
                                     <option value="OTHER" {% if profile.gender == 'OTHER' %}selected{% endif %}>Khác</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Nhóm máu</label>
-                                <select class="form-select" name="blood_type">
-                                    <option value="">-- Chọn nhóm máu --</option>
-                                    <option value="A" {% if profile.blood_type == 'A' %}selected{% endif %}>A</option>
-                                    <option value="B" {% if profile.blood_type == 'B' %}selected{% endif %}>B</option>
-                                    <option value="AB" {% if profile.blood_type == 'AB' %}selected{% endif %}>AB</option>
-                                    <option value="O" {% if profile.blood_type == 'O' %}selected{% endif %}>O</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -128,7 +118,7 @@
                         <div class="section-content">
                             <div class="form-group">
                                 <label class="form-label">Số điện thoại</label>
-                                <input type="tel" class="form-control" name="phone" value="{{ profile.phone|default:'' }}" placeholder="Nhập số điện thoại">
+                                <input type="tel" class="form-control" name="phone" value="{% if ext_user.phone %}{{ ext_user.phone }}{% elif profile.phone %}{{ profile.phone }}{% endif %}" placeholder="Nhập số điện thoại">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Email</label>
@@ -142,55 +132,6 @@
                     </div>
                 </div>
 
-                <!-- Section 3: Medical & Insurance Information -->
-                <div class="col-12 col-lg-6">
-                    <div class="info-section medical-info">
-                        <div class="section-header">
-                            <i class="bi bi-heart-pulse"></i>
-                            <div class="section-title">
-                                <span class="section-name">3. Thông tin y tế & bảo hiểm</span>
-                                <span class="section-description">Giúp bác sĩ nắm rõ để kê đơn an toàn</span>
-                            </div>
-                        </div>
-                        <div class="section-content">
-                            <div class="form-group">
-                                <label class="form-label">Số thẻ BHYT</label>
-                                <input type="text" class="form-control" name="insurance_number" value="{{ profile.insurance_number|default:'' }}" placeholder="Nhập số thẻ BHYT">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Tiền sử dị ứng</label>
-                                <textarea class="form-control" name="allergies" rows="3" placeholder="Nhập thông tin dị ứng (nếu có)">{{ profile.allergies|default:'' }}</textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Ghi chú y tế</label>
-                                <textarea class="form-control" name="notes" rows="3" placeholder="Nhập ghi chú y tế">{{ profile.notes|default:'' }}</textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section 4: Emergency Contact -->
-                <div class="col-12 col-lg-6">
-                    <div class="info-section emergency-info">
-                        <div class="section-header">
-                            <i class="bi bi-telephone-fill"></i>
-                            <div class="section-title">
-                                <span class="section-name">4. Liên hệ khẩn cấp</span>
-                                <span class="section-description">Thông tin liên hệ trong trường hợp khẩn cấp</span>
-                            </div>
-                        </div>
-                        <div class="section-content">
-                            <div class="form-group">
-                                <label class="form-label">Người liên hệ</label>
-                                <input type="text" class="form-control" name="emergency_contact_name" value="{{ profile.emergency_contact_name|default:'' }}" placeholder="Nhập tên người liên hệ khẩn cấp">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Số điện thoại</label>
-                                <input type="tel" class="form-control" name="emergency_contact_phone" value="{{ profile.emergency_contact_phone|default:'' }}" placeholder="Nhập số điện thoại khẩn cấp">
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </form>
     </div>

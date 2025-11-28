@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import IntegrityError
 from django.urls import reverse
-from django.db.models import Count, Sum, Q, F, DateTimeField, DecimalField
+from django.db.models import Count, Sum, Q, F, DateTimeField, DecimalField, ExpressionWrapper
 from django.utils.timezone import localdate, now, timedelta, make_aware
 from datetime import datetime, time as dt_time
 from django.db.models.functions import Cast
@@ -31,6 +31,27 @@ from staff.models import StaffProfiles
 from chatbot.models import ChatbotSessions, ChatbotMessages
 from .models import Specialty, DoctorRankFee, Drug, UserLite
 from .forms import SpecialtyForm, RankFeeForm, DrugForm, UserRoleForm, CreateUserForm, UpdateUserForm
+
+
+def _localize_timestamp(value):
+    """
+    Chuẩn hóa datetime về timezone mặc định của project.
+
+    Ghi chú:
+    - Một số bảng legacy trả về datetime *naive* (không có TZ).
+    - Thay vì giả định các giá trị này là UTC (dẫn tới lệch giờ nếu DB đã dùng giờ VN),
+      ta coi chúng nằm trong timezone mặc định (Asia/Ho_Chi_Minh) rồi localize.
+    - Nếu datetime đã *aware* thì chỉ đơn giản chuyển về TZ mặc định.
+    """
+    if not value:
+        return None
+
+    dt = value
+    if timezone.is_naive(dt):
+        # Gắn timezone mặc định (ví dụ Asia/Ho_Chi_Minh) cho giá trị từ DB
+        dt = timezone.make_aware(dt, timezone.get_default_timezone())
+
+    return timezone.localtime(dt)
 @login_required
 @role_required([Role.ADMIN])
 def admin_doctors_list(request):
@@ -83,18 +104,31 @@ def admin_doctors_create(request):
         specialty_id = request.POST.get("specialty_id")
         rank = request.POST.get("rank", "")
         license_number = (request.POST.get("license_number", "") or "").strip()
-        years_experience = int(request.POST.get("years_experience") or 0)
+        
+        # Handle years_experience with better error handling
+        try:
+            years_experience = int(request.POST.get("years_experience") or 0)
+        except (ValueError, TypeError):
+            years_experience = 0
+            
         room_number = (request.POST.get("room_number", "") or "").strip()
         fee_raw = (request.POST.get("consultation_fee") or "0").replace(".", "").replace(",", "")
         try:
             consultation_fee = float(fee_raw or 0)
-        except Exception:
+        except (ValueError, TypeError):
             consultation_fee = 0
         password = request.POST.get("password", "").strip()
         password2 = request.POST.get("password2", "").strip()
 
-        if not full_name or not email or not specialty_id or not password:
-            return JsonResponse({"ok": False, "msg": "Vui lòng nhập đầy đủ thông tin bắt buộc."}, status=400)
+        # Validate required fields
+        if not full_name:
+            return JsonResponse({"ok": False, "msg": "Vui lòng nhập họ và tên."}, status=400)
+        if not email:
+            return JsonResponse({"ok": False, "msg": "Vui lòng nhập email."}, status=400)
+        if not specialty_id:
+            return JsonResponse({"ok": False, "msg": "Vui lòng chọn chuyên khoa."}, status=400)
+        if not password:
+            return JsonResponse({"ok": False, "msg": "Vui lòng nhập mật khẩu."}, status=400)
         
         if password != password2:
             return JsonResponse({"ok": False, "msg": "Mật khẩu xác nhận không khớp."}, status=400)
@@ -106,8 +140,10 @@ def admin_doctors_create(request):
             validate_email(email)
         except ValidationError:
             return JsonResponse({"ok": False, "msg": "Email không hợp lệ."}, status=400)
+            
         if Users.objects.filter(email=email).exists():
             return JsonResponse({"ok": False, "msg": "Email đã tồn tại."}, status=400)
+            
         if license_number and Doctors.objects.filter(license_number=license_number).exists():
             return JsonResponse({"ok": False, "msg": "Số giấy phép đã tồn tại."}, status=400)
 
@@ -133,9 +169,48 @@ def admin_doctors_create(request):
         )
         messages.success(request, f"Đã tạo bác sĩ {full_name} thành công.")
         return JsonResponse({"ok": True})
+    except IntegrityError as e:
+        import traceback
+        print(f"IntegrityError creating doctor: {e}")
+        print(traceback.format_exc())
+        return JsonResponse({"ok": False, "msg": "Dữ liệu không hợp lệ hoặc đã tồn tại trong hệ thống."}, status=400)
     except Exception as e:
+        import traceback
         print(f"Error creating doctor: {e}")
+        print(traceback.format_exc())
         return JsonResponse({"ok": False, "msg": f"Có lỗi xảy ra: {str(e)}"}, status=500)
+
+
+@login_required
+@role_required([Role.ADMIN])
+@require_POST
+@transaction.atomic
+def admin_doctor_delete(request, doctor_id):
+    """
+    Delete doctor if they have no appointments yet.
+    Otherwise, return an error message (toast).
+    """
+    doctor = get_object_or_404(Doctors.objects.select_related("user"), pk=doctor_id)
+
+    if Appointments.objects.filter(doctor=doctor).exists():
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Không thể xóa bác sĩ vì đã có hoặc từng có lịch khám với bệnh nhân.",
+            },
+            status=400,
+        )
+
+    user = doctor.user
+
+    DoctorSettings.objects.filter(doctor=doctor).delete()
+    Schedules.objects.filter(doctor=doctor).delete()
+    UserExtras.objects.filter(user=user).delete()
+
+    doctor.delete()
+    user.delete()
+
+    return JsonResponse({"ok": True, "message": "Đã xóa bác sĩ khỏi hệ thống."})
 
 
 @login_required
@@ -625,7 +700,15 @@ def appointment_detail(request, pk):
         ),
         pk=pk
     )
-    return render(request, "adminpanel/appointment_detail.html", {"appointment": appointment})
+    history = {
+        "created": _localize_timestamp(appointment.created_at),
+        "updated": _localize_timestamp(appointment.updated_at),
+    }
+    return render(
+        request,
+        "adminpanel/appointment_detail.html",
+        {"appointment": appointment, "history": history},
+    )
 
 
 @login_required
@@ -787,36 +870,32 @@ def patient_edit(request, pk):
 def patient_delete(request, pk):
     if request.method != "POST":
         return redirect("adminpanel:admin_patients_list")
-    
+
     try:
         p = get_object_or_404(PatientProfiles.objects.select_related("user"), pk=pk)
         user = p.user
-        
-        # Xóa cascade: xóa tất cả dữ liệu liên quan trước khi xóa patient
-        # 1. Xóa appointments của bệnh nhân này
-        Appointments.objects.filter(patient=p).delete()
-        
-        # 2. Xóa appointment logs liên quan
+
+        # Chỉ cho phép xóa nếu bệnh nhân CHƯA có bất kỳ lịch hẹn nào
+        if Appointments.objects.filter(patient=p).exists():
+            messages.error(
+                request,
+                "Không thể xóa bệnh nhân vì đã có phát sinh đặt lịch hoặc khám bệnh.",
+            )
+            return redirect("adminpanel:admin_patients_list")
+
+        # Không có lịch hẹn: cho phép xóa (giữ lại logic cascade hiện có)
         AppointmentLogs.objects.filter(appointment__patient=p).delete()
-        
-        # 3. Xóa invoices của bệnh nhân này (nếu có)
         Invoices.objects.filter(appointment__patient=p).delete()
-        
-        # 4. Xóa chatbot sessions của bệnh nhân
         ChatbotSessions.objects.filter(user=user).delete()
-        
-        # 5. Xóa UserExtras nếu có
         UserExtras.objects.filter(user=user).delete()
-        
-        # 6. Cuối cùng xóa patient profile và user
-        p.delete()  # Sẽ tự động xóa user do CASCADE
-        
+
+        p.delete()  # CASCADE sẽ xóa user tương ứng
         messages.success(request, "Đã xóa bệnh nhân và tất cả dữ liệu liên quan.")
-        
+
     except Exception as e:
         print(f"Error deleting patient: {e}")
         messages.error(request, f"Không thể xóa bệnh nhân: {str(e)}")
-    
+
     return redirect("adminpanel:admin_patients_list")
 
 
@@ -872,6 +951,35 @@ def admin_staff_list(request):
             qs = qs.filter(Q(user__full_name__icontains=term) | Q(user__email__icontains=term) | 
                            Q(employee_code__icontains=term) | Q(cccd__icontains=term))
     return render(request, "adminpanel/staff_list.html", {"staff": qs, "q": q})
+
+
+@login_required
+@role_required([Role.ADMIN])
+@require_POST
+@transaction.atomic
+def admin_staff_delete(request, pk):
+    staff = get_object_or_404(StaffProfiles.objects.select_related("user"), pk=pk)
+    user = staff.user
+
+    if Payments.objects.filter(received_by_user=user).exists():
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "Không thể xóa nhân viên vì đã từng thu/nhận thanh toán cho bệnh nhân.",
+            },
+            status=400,
+        )
+
+    try:
+        staff.delete()
+        user.delete()
+    except IntegrityError as exc:
+        return JsonResponse(
+            {"ok": False, "message": f"Không thể xóa nhân viên: {exc}"},
+            status=400,
+        )
+
+    return JsonResponse({"ok": True, "message": "Đã xóa nhân viên khỏi hệ thống."})
 
 
 @login_required
@@ -942,9 +1050,19 @@ def admin_staff_create(request):
         )
         messages.success(request, f"Đã tạo nhân viên {full_name} thành công.")
         return JsonResponse({"ok": True, "msg": "Đã tạo nhân viên thành công."})
+    except IntegrityError as e:
+        # Bắt lỗi trùng dữ liệu mức DB (vd: mã NV, CCCD...)
+        msg = str(e)
+        if "employee_code" in msg:
+            user_msg = "Mã nhân viên đã tồn tại."
+        elif "cccd" in msg:
+            user_msg = "CCCD đã tồn tại."
+        else:
+            user_msg = "Dữ liệu bị trùng, vui lòng kiểm tra lại."
+        return JsonResponse({"ok": False, "msg": user_msg}, status=400)
     except Exception as e:
         print(f"Error creating staff: {e}")
-        return JsonResponse({"ok": False, "msg": f"Có lỗi xảy ra: {str(e)}"}, status=500)
+        return JsonResponse({"ok": False, "msg": "Có lỗi xảy ra khi tạo nhân viên. Vui lòng thử lại."}, status=500)
 
 
 @login_required
@@ -1130,33 +1248,33 @@ def admin_patient_update(request, pk):
 def admin_patient_delete(request, pk):
     if request.method != "POST":
         return JsonResponse({"ok": False, "message": "Invalid method"}, status=405)
-    
+
     try:
         p = get_object_or_404(PatientProfiles.objects.select_related("user"), pk=pk)
         user = p.user
-        
-        # Xóa cascade: xóa tất cả dữ liệu liên quan trước khi xóa patient
-        # 1. Xóa appointments của bệnh nhân này
-        Appointments.objects.filter(patient=p).delete()
-        
-        # 2. Xóa appointment logs liên quan
+
+        # Chỉ cho phép xóa nếu bệnh nhân CHƯA có bất kỳ lịch hẹn nào
+        if Appointments.objects.filter(patient=p).exists():
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Không thể xóa bệnh nhân vì đã có phát sinh đặt lịch hoặc khám bệnh.",
+                },
+                status=400,
+            )
+
+        # Không có lịch hẹn: cho phép xóa (giữ lại logic cascade hiện có)
         AppointmentLogs.objects.filter(appointment__patient=p).delete()
-        
-        # 3. Xóa invoices của bệnh nhân này (nếu có)
         Invoices.objects.filter(appointment__patient=p).delete()
-        
-        # 4. Xóa chatbot sessions của bệnh nhân
         ChatbotSessions.objects.filter(user=user).delete()
-        
-        # 5. Xóa UserExtras nếu có
         UserExtras.objects.filter(user=user).delete()
-        
-        # 6. Cuối cùng xóa patient profile và user
-        p.delete()  # Sẽ tự động xóa user do CASCADE
-        # user.delete()  # Không cần vì CASCADE đã xóa
-        
-        return JsonResponse({"ok": True, "message": "Đã xóa bệnh nhân và tất cả dữ liệu liên quan."})
-        
+
+        p.delete()  # CASCADE sẽ xóa user tương ứng
+
+        return JsonResponse(
+            {"ok": True, "message": "Đã xóa bệnh nhân và tất cả dữ liệu liên quan."}
+        )
+
     except Exception as e:
         print(f"Error deleting patient: {e}")
         return JsonResponse({"ok": False, "message": f"Không thể xóa bệnh nhân: {str(e)}"}, status=500)
@@ -1282,12 +1400,15 @@ def invoice_list(request):
 @transaction.atomic
 def invoice_cash(request, pk):
     inv = get_object_or_404(Invoices, pk=pk, status='UNPAID')
-    
-    # Calculate total from items
+    # Calculate total from items (tiền thực tế của hóa đơn)
     from django.db.models import ExpressionWrapper
     total = InvoiceItems.objects.filter(invoice=inv).aggregate(
-        t=Sum(ExpressionWrapper(F("quantity") * F("unit_price"),
-                                output_field=DecimalField(max_digits=12, decimal_places=2)))
+        t=Sum(
+            ExpressionWrapper(
+                F("quantity") * F("unit_price"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
     )["t"] or 0
     
     # Get current user
@@ -1310,9 +1431,10 @@ def invoice_cash(request, pk):
     
     # Update invoice status
     inv.status = 'PAID'
-    inv.amount_due = 0
+    # Lưu tổng tiền thực tế vào subtotal, amount_due thể hiện số tiền còn phải thu
     inv.subtotal = total
-    inv.save(update_fields=['status', 'amount_due', 'subtotal'])
+    inv.amount_due = 0
+    inv.save(update_fields=['status', 'subtotal', 'amount_due'])
     
     messages.success(request, f'Đã nhận tiền mặt cho hóa đơn #{inv.id:05d}.')
     return redirect('adminpanel:admin_invoice_list')
@@ -1328,7 +1450,24 @@ def invoice_detail(request, pk):
         ).prefetch_related('items'),
         pk=pk
     )
-    return render(request, 'adminpanel/billing/invoice_detail.html', {'inv': inv})
+    # Tính tổng tiền từ các dòng hóa đơn để hiển thị chính xác,
+    # tránh phụ thuộc vào amount_due (có thể bằng 0 sau khi đã thanh toán)
+    total = InvoiceItems.objects.filter(invoice=inv).aggregate(
+        t=Sum(
+            ExpressionWrapper(
+                F("quantity") * F("unit_price"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
+    )["t"] or 0
+    return render(
+        request,
+        'adminpanel/billing/invoice_detail.html',
+        {
+            'inv': inv,
+            'total': total,
+        },
+    )
 
 
 @login_required
@@ -1346,7 +1485,44 @@ def invoice_print(request, pk):
         .get(pk=pk)
     )
 
-    lines = invoice.items.all().order_by("id")
+    items_qs = (
+        InvoiceItems.objects.filter(invoice=invoice)
+        .annotate(
+            line_total_calc=ExpressionWrapper(
+                F("quantity") * F("unit_price"),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
+        .order_by("id")
+    )
+
+    total = (
+        InvoiceItems.objects.filter(invoice=invoice)
+        .aggregate(
+            t=Sum(
+                ExpressionWrapper(
+                    F("quantity") * F("unit_price"),
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                )
+            )
+        )
+        .get("t") or 0
+    )
+
+    # Resolve external user for logging/printed_by
+    ext_user = Users.objects.filter(email=getattr(request.user, "email", None)).first()
+    if ext_user:
+        InvoicePrintLogs.objects.create(
+            invoice=invoice,
+            printed_by_user=ext_user,
+            printed_at=timezone.now(),
+            copy_tag=("ORIGINAL" if invoice.printed_at is None else "COPY"),
+            note=None,
+        )
+        if invoice.printed_at is None:
+            invoice.printed_at = timezone.now()
+            invoice.printed_by_user = ext_user
+            invoice.save(update_fields=["printed_at", "printed_by_user"])
 
     clinic = {
         "name": "PHÒNG KHÁM ĐẠI HỌC BÁCH KHOA ĐÀ NẴNG",
@@ -1359,8 +1535,10 @@ def invoice_print(request, pk):
         "billing/invoice_print.html",
         {
             "invoice": invoice,
-            "lines": lines,
+            "lines": items_qs,
             "clinic": clinic,
+            "total": total,
+            "cashier": ext_user or invoice.printed_by_user,
         },
     )
 
@@ -1369,12 +1547,23 @@ def invoice_print(request, pk):
 @role_required([Role.ADMIN])
 def settings_view(request):
     tab = request.GET.get("tab", "specialties")
+    user_q = (request.GET.get("user_q", "") or "").strip()
+    users_qs = UserLite.objects.all().order_by("full_name")
+    if user_q:
+        terms = user_q.split()
+        for term in terms:
+            users_qs = users_qs.filter(
+                Q(full_name__icontains=term)
+                | Q(email__icontains=term)
+                | Q(phone__icontains=term)
+            )
     ctx = {
         "tab": tab,
         "specialties": Specialty.objects.all().order_by("name"),
         "rankfees": DoctorRankFee.objects.all().order_by("rank"),
         "drugs": Drug.objects.all().order_by("name")[:200],
-        "users": UserLite.objects.all().order_by("full_name")[:200],
+        "users": users_qs[:200],
+        "user_q": user_q,
         "specialty_form": SpecialtyForm(),
         "rankfee_form": RankFeeForm(),
         "drug_form": DrugForm(),
@@ -1421,7 +1610,7 @@ def rankfee_create(request):
         if form.is_valid():
             form.save()
             messages.success(request, "Đã thêm/khởi tạo phí theo học vị.")
-    return redirect("adminpanel:settings")
+    return redirect(f"{reverse('adminpanel:settings')}?tab=rankfees")
 
 @login_required
 @role_required([Role.ADMIN])
@@ -1432,7 +1621,7 @@ def rankfee_update(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Đã cập nhật phí theo học vị.")
-    return redirect("adminpanel:settings")
+    return redirect(f"{reverse('adminpanel:settings')}?tab=rankfees")
 
 @login_required
 @role_required([Role.ADMIN])
@@ -1441,7 +1630,7 @@ def rankfee_delete(request, pk):
     if request.method == "POST":
         obj.delete()
         messages.success(request, "Đã xóa phí theo học vị.")
-    return redirect("adminpanel:settings")
+    return redirect(f"{reverse('adminpanel:settings')}?tab=rankfees")
 
 # ---------- drugs CRUD ----------
 @login_required

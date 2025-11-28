@@ -82,6 +82,11 @@
       transform: translateY(-1px);
       box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
     }
+
+    .search-form .form-control:focus {
+      box-shadow: none;
+      border-color: #93c5fd;
+    }
   </style>
 </head>
 <body style="background-color: #f6f8fb;">
@@ -99,8 +104,13 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <a class="nav-link active" href="{% url 'staff:staff_cashier' %}">
+            <a class="nav-link {% if nav_active != 'PAID' %}active{% endif %}" href="{% url 'staff:staff_cashier' %}">
               <i class="bi bi-receipt me-1"></i>Hóa đơn chờ thanh toán
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if nav_active == 'PAID' %}active{% endif %}" href="{% url 'staff:staff_cashier_paid' %}">
+              <i class="bi bi-check2-circle me-1"></i>Hóa đơn đã thanh toán
             </a>
           </li>
         </ul>
@@ -139,9 +149,24 @@
 
   <div class="container py-4">
     <!-- Header -->
-    <div class="mb-4">
-      <h3 class="text-primary mb-1">Hóa đơn chờ thanh toán</h3>
-      <p class="text-muted mb-0">Quản lý và xử lý thanh toán hóa đơn</p>
+    <div class="d-flex flex-column flex-lg-row justify-content-end gap-3 mb-4">
+      <form method="get" class="search-form w-100 w-lg-auto" action="">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0">
+            <i class="bi bi-search text-primary"></i>
+          </span>
+          <input
+            type="search"
+            class="form-control border-start-0"
+            placeholder="Tìm theo tên bệnh nhân hoặc bác sĩ..."
+            name="q"
+            value="{{ search_query|default_if_none:'' }}">
+          {% if search_query %}
+            <a class="btn btn-outline-secondary" href=".">Xóa</a>
+          {% endif %}
+          <button class="btn btn-primary" type="submit">Tìm</button>
+        </div>
+      </form>
     </div>
     
     <!-- Message container will be created by JavaScript -->
@@ -192,7 +217,13 @@
                   <div>{{ inv.appointment.appointment_at|date:"d/m/Y" }}</div>
                   <small class="text-muted">{{ inv.appointment.appointment_at|date:"H:i" }}</small>
                 </td>
-                <td class="fw-bold text-success">{{ inv.amount_due|vnd }}</td>
+                <td class="fw-bold text-success">
+                  {% if inv.status == 'PAID' %}
+                    {{ inv.subtotal|vnd }}
+                  {% else %}
+                    {{ inv.amount_due|vnd }}
+                  {% endif %}
+                </td>
                 <td>
                   {% if inv.status == 'UNPAID' %}
                     <span class="badge badge-warning">
@@ -216,7 +247,15 @@
               <tr>
                 <td colspan="7" class="text-center py-5">
                   <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-                  <p class="text-muted mt-2 mb-0">Không có hóa đơn chờ thanh toán</p>
+                  <p class="text-muted mt-2 mb-0">
+                    {% if search_query %}
+                      Không tìm thấy hóa đơn phù hợp
+                    {% elif active_status == 'PAID' %}
+                      Chưa có hóa đơn đã thanh toán
+                    {% else %}
+                      Không có hóa đơn chờ thanh toán
+                    {% endif %}
+                  </p>
                 </td>
               </tr>
             {% endfor %}

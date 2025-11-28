@@ -172,7 +172,11 @@
       {% endfor %}
       <tr class="total-row">
         <td colspan="3" style="text-align:right">TỔNG CỘNG</td>
-        <td class="num">{{ invoice.amount_due|floatformat:"0"|intcomma }} VND</td>
+        <td class="num">
+          {% with total_value=total|default:invoice.subtotal|default:invoice.amount_due %}
+            {{ total_value|floatformat:"0"|intcomma }} VND
+          {% endwith %}
+        </td>
       </tr>
     </tbody>
   </table>

@@ -1,41 +1,5 @@
 from adminpanel.models import DoctorRankFee
 
-def get_rank_fees():
-    """Get rank fees from database"""
-    fees = {}
-    try:
-        for rank_fee in DoctorRankFee.objects.all():
-            fees[rank_fee.rank] = int(rank_fee.default_fee)
-    except Exception:
-        # Fallback to hardcoded values if database is not available
-        fees = {
-            "BS": 200_000,
-            "THS": 300_000,
-            "TS": 500_000,
-            "PGS": 700_000,
-            "GS": 1_000_000,
-        }
-    return fees
-
-def get_default_fee():
-    """Get default fee from database"""
-    try:
-        bs_fee = DoctorRankFee.objects.filter(rank="BS").first()
-        return int(bs_fee.default_fee) if bs_fee else 200_000
-    except Exception:
-        return 200_000
-
-# Cache the fees to avoid repeated database queries
-_rank_fees_cache = None
-def get_cached_rank_fees():
-    global _rank_fees_cache
-    if _rank_fees_cache is None:
-        _rank_fees_cache = get_rank_fees()
-    return _rank_fees_cache
-
-RANK_FEES = get_cached_rank_fees()
-DEFAULT_FEE = get_default_fee()
-
 NORMALIZE_MAP = {
     "bs": "BS", "bácsĩ": "BS", "bacsi": "BS", "bác sĩ": "BS",
     "ths": "THS", "thacsĩ": "THS", "thacsi": "THS", "th.s": "THS", "thạc sĩ": "THS",
@@ -59,6 +23,47 @@ def normalize_rank(raw: str | None) -> str:
         return NORMALIZE_MAP[key]
     # Return uppercase if no match
     return v.upper()
+
+
+def get_rank_fees():
+    """Get rank fees from database (normalized keys)"""
+    fees = {}
+    try:
+        for rank_fee in DoctorRankFee.objects.all():
+            key = normalize_rank(rank_fee.rank)
+            fees[key or rank_fee.rank] = int(rank_fee.default_fee)
+    except Exception:
+        # Fallback to hardcoded values if database is not available
+        fees = {
+            "BS": 200_000,
+            "THS": 300_000,
+            "TS": 500_000,
+            "PGS": 700_000,
+            "GS": 1_000_000,
+        }
+    return fees
+
+
+def get_default_fee():
+    """Get default fee from database"""
+    try:
+        bs_fee = DoctorRankFee.objects.filter(rank__iexact="BS").first()
+        return int(bs_fee.default_fee) if bs_fee else 200_000
+    except Exception:
+        return 200_000
+
+
+# Cache the fees to avoid repeated database queries
+_rank_fees_cache = None
+def get_cached_rank_fees():
+    global _rank_fees_cache
+    if _rank_fees_cache is None:
+        _rank_fees_cache = get_rank_fees()
+    return _rank_fees_cache
+
+
+RANK_FEES = get_cached_rank_fees()
+DEFAULT_FEE = get_default_fee()
 
 
 def get_consultation_fee(doctor) -> int:

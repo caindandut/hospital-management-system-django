@@ -192,10 +192,14 @@
                                                     <span class="badge bg-secondary">Chờ xác nhận</span>
                                                 {% elif appointment.status == 'CONFIRMED' %}
                                                     <span class="badge bg-primary">Đã xác nhận</span>
+                                                {% elif appointment.status == 'IN_PROGRESS' %}
+                                                    <span class="badge bg-info">Đang khám</span>
                                                 {% elif appointment.status == 'CHECKED_IN' %}
                                                     <span class="badge bg-info">Đã check-in</span>
-                                                {% elif appointment.status == 'COMPLETED' %}
+                                                {% elif appointment.status == 'COMPLETED' and appointment.invoice_status == 'PAID' %}
                                                     <span class="badge bg-success">Hoàn thành</span>
+                                                {% elif appointment.status == 'COMPLETED' and appointment.invoice_status != 'PAID' %}
+                                                    <span class="badge bg-warning text-dark">Đã khám - chờ thanh toán</span>
                                                 {% elif appointment.status == 'CANCELLED' %}
                                                     <span class="badge bg-dark">Đã hủy</span>
                                                 {% elif appointment.status == 'NO_SHOW' %}
@@ -223,6 +227,7 @@
                                                             data-duration="{{ appointment.schedule.slot_duration_minutes }}"
                                                             data-room="{{ appointment.doctor.room_number|default:'Chưa cập nhật' }}"
                                                             data-status="{{ appointment.status }}"
+                                                            data-invoice-status="{{ appointment.invoice_status|default_if_none:'' }}"
                                                             data-fee="{{ appointment.effective_fee|default:0 }}"
                                                             data-note="{{ appointment.reason|default:'' }}"
                                                             data-cancel-url="{% if appointment.status in 'PENDING,CONFIRMED' %}{% url 'appointments:cancel_appointment' appointment.id %}{% endif %}">
@@ -371,6 +376,7 @@
           const m = {
             'PENDING':'Chờ xác nhận',
             'CONFIRMED':'Đã xác nhận',
+            'IN_PROGRESS':'Đang khám',
             'CHECKED_IN':'Đã check-in',
             'COMPLETED':'Hoàn thành',
             'CANCELLED':'Đã hủy',
@@ -390,7 +396,13 @@
           document.getElementById('dTime').textContent     = data('time');
           document.getElementById('dDuration').textContent = (data('duration')||'') + ' phút';
           document.getElementById('dRoom').textContent     = data('room') || 'Chưa cập nhật';
-          document.getElementById('dStatus').textContent   = toViStatus(data('status'));
+          const apptStatus = data('status');
+          const invStatus  = data('invoice-status');
+          if (apptStatus === 'COMPLETED' && invStatus && invStatus !== 'PAID') {
+            document.getElementById('dStatus').textContent = 'Đã khám - chờ thanh toán';
+          } else {
+            document.getElementById('dStatus').textContent = toViStatus(apptStatus);
+          }
           document.getElementById('dFee').textContent      = vnd(data('fee')||0);
           document.getElementById('dNote').textContent     = data('note');
 

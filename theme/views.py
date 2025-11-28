@@ -299,6 +299,9 @@ def register_view(request):
                             ext_user.password_hash = password1
                             ext_user.updated_at = timezone.now()
                             ext_user.save(update_fields=['full_name', 'phone', 'password_hash', 'updated_at'])
+                            
+                            # Note: phone is stored in ExternalUser, not in PatientProfile
+                            # PatientProfile doesn't have a phone field
                     except Exception as e:
                         # Log error but don't fail registration
                         import traceback
@@ -425,6 +428,7 @@ def profile_view(request):
             if ext_user:
                 
                 # Save submitted fields to patient_profiles (create or update)
+                # Note: phone is stored in ExternalUser, not in PatientProfiles
                 data = {
                     'cccd': request.POST.get('cccd') or (profile.cccd if profile else None),
                     'date_of_birth': request.POST.get('date_of_birth') or None,

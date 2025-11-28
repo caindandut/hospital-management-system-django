@@ -11,6 +11,7 @@ urlpatterns = [
 
     # Cashier
     path("cashier/", views.cashier_invoices, name="staff_cashier"),
+    path("cashier/paid/", views.cashier_paid_invoices, name="staff_cashier_paid"),
     path("cashier/invoice/<int:pk>/", views.cashier_invoice_detail, name="staff_invoice_detail"),
     path("cashier/invoice/<int:pk>/print/", views.invoice_print, name="staff_invoice_print"),
     path("cashier/invoice/<int:pk>/pay/", views.invoice_pay_cash, name="staff_invoice_pay"),

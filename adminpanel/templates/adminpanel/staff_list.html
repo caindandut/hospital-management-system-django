@@ -77,12 +77,35 @@
             </td>
             <td>{{ s.start_date|date:"d/m/Y"|default:"-" }}</td>
             <td class="text-end">
-              <!-- Nút Sửa (mở modal) -->
-              <button class="btn btn-sm btn-outline-primary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#editStaffModal{{ s.id }}">
-                Sửa
-              </button>
+              <div class="btn-group">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary btn-staff-detail"
+                        data-fullname="{{ s.user.full_name }}"
+                        data-email="{{ s.user.email }}"
+                        data-phone="{{ s.user.phone|default:'-' }}"
+                        data-code="{{ s.employee_code|default:'-' }}"
+                        data-position="{{ s.position|default:'-' }}"
+                        data-shift-label="{% if s.shift == 'MORNING' %}Sáng{% elif s.shift == 'AFTERNOON' %}Chiều{% elif s.shift == 'ROTATE' %}Luân phiên{% else %}-{% endif %}"
+                        data-status-label="{% if s.user.is_active %}Hoạt động{% else %}Khóa{% endif %}"
+                        data-start-date="{{ s.start_date|date:'d/m/Y'|default:'-' }}"
+                        data-dob="{{ s.date_of_birth|date:'d/m/Y'|default:'-' }}"
+                        data-cccd="{{ s.cccd|default:'-' }}"
+                        data-gender-label="{% if s.gender == 'MALE' %}Nam{% elif s.gender == 'FEMALE' %}Nữ{% elif s.gender == 'OTHER' %}Khác{% else %}-{% endif %}"
+                        data-address="{{ s.address|default:'-' }}">
+                  Chi tiết
+                </button>
+                <button class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editStaffModal{{ s.id }}">
+                  Sửa
+                </button>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger btn-delete-staff"
+                        data-staff-id="{{ s.id }}"
+                        data-staff-name="{{ s.user.full_name }}">
+                  Xóa
+                </button>
+              </div>
             </td>
           </tr>
           {% empty %}
@@ -95,6 +118,73 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detail Staff -->
+<div class="modal fade" id="staffDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Thông tin nhân viên</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Họ và tên</label>
+            <p class="mb-0 fw-semibold" data-field="full_name">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Email</label>
+            <p class="mb-0" data-field="email">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Số điện thoại</label>
+            <p class="mb-0" data-field="phone">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Mã nhân viên</label>
+            <p class="mb-0" data-field="employee_code">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Vị trí</label>
+            <p class="mb-0" data-field="position">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Ca làm việc</label>
+            <p class="mb-0" data-field="shift">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Trạng thái</label>
+            <p class="mb-0" data-field="status">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Ngày bắt đầu</label>
+            <p class="mb-0" data-field="start_date">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Ngày sinh</label>
+            <p class="mb-0" data-field="dob">-</p>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">CCCD</label>
+            <p class="mb-0" data-field="cccd">-</p>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label text-muted small">Giới tính</label>
+            <p class="mb-0" data-field="gender">-</p>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label text-muted small">Địa chỉ</label>
+            <p class="mb-0" data-field="address">-</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+      </div>
     </div>
   </div>
 </div>
@@ -311,6 +401,48 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const STAFF_URLS = {
+    delete: '{% url "adminpanel:admin_staff_delete" 0 %}',
+  };
+  const getCsrfToken = () => {
+    const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    return input ? input.value : '{{ csrf_token }}';
+  };
+
+  // Staff detail modal
+  const detailModalEl = document.getElementById('staffDetailModal');
+  let detailModalInstance = null;
+  const setDetailField = (field, value) => {
+    if (!detailModalEl) return;
+    const el = detailModalEl.querySelector(`[data-field="${field}"]`);
+    if (el) {
+      el.textContent = value && value.trim() ? value : '-';
+    }
+  };
+  document.querySelectorAll('.btn-staff-detail').forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (!detailModalEl) {
+        return;
+      }
+      setDetailField('full_name', this.dataset.fullname || '-');
+      setDetailField('email', this.dataset.email || '-');
+      setDetailField('phone', this.dataset.phone || '-');
+      setDetailField('employee_code', this.dataset.code || '-');
+      setDetailField('position', this.dataset.position || '-');
+      setDetailField('shift', this.dataset.shiftLabel || '-');
+      setDetailField('status', this.dataset.statusLabel || '-');
+      setDetailField('start_date', this.dataset.startDate || '-');
+      setDetailField('dob', this.dataset.dob || '-');
+      setDetailField('cccd', this.dataset.cccd || '-');
+      setDetailField('gender', this.dataset.genderLabel || '-');
+      setDetailField('address', this.dataset.address || '-');
+      if (!detailModalInstance) {
+        detailModalInstance = new bootstrap.Modal(detailModalEl);
+      }
+      detailModalInstance.show();
+    });
+  });
+
   // Password confirmation validation for edit modals
   const modals = document.querySelectorAll('[id^="editStaffModal"]');
   modals.forEach(modal => {
@@ -349,6 +481,17 @@ document.addEventListener('DOMContentLoaded', function() {
     password.addEventListener('input', validatePasswordMatch);
     password2.addEventListener('input', validatePasswordMatch);
     
+    function markInvalidStaffField(name, message) {
+      const input = formCreateStaff.querySelector(`[name="${name}"]`);
+      if (!input) return;
+      input.classList.remove('is-valid');
+      input.classList.add('is-invalid');
+      const fb = input.nextElementSibling;
+      if (fb && fb.classList.contains('invalid-feedback') && message) {
+        fb.textContent = message;
+      }
+    }
+
     formCreateStaff.addEventListener('submit', async function(e) {
       e.preventDefault();
       formCreateStaff.classList.add('was-validated');
@@ -368,16 +511,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const data = await res.json();
         if (data.ok) {
-          location.reload();
+          if (window.showMessage) {
+            window.showMessage(data.msg || 'Đã tạo nhân viên thành công.', 'success');
+          }
+          setTimeout(() => location.reload(), 800);
         } else {
-          alert(data.msg || 'Có lỗi xảy ra');
+          const msg = data.msg || 'Có lỗi xảy ra khi tạo nhân viên.';
+          // Đánh dấu các input sai điều kiện để hiện dấu X
+          if (msg.includes('Email')) {
+            markInvalidStaffField('email', msg);
+          }
+          if (msg.includes('Mã nhân viên')) {
+            markInvalidStaffField('employee_code', msg);
+          }
+          if (msg.includes('CCCD')) {
+            markInvalidStaffField('cccd', msg);
+          }
+          if (window.showMessage) {
+            window.showMessage(msg, 'error');
+          } else {
+            console.error(msg);
+          }
         }
       } catch (error) {
         console.error('Request failed:', error);
-        alert('Có lỗi xảy ra khi tạo nhân viên');
+        if (window.showMessage) {
+          window.showMessage('Có lỗi xảy ra khi tạo nhân viên.', 'error');
+        } else {
+          console.error('Có lỗi xảy ra khi tạo nhân viên.');
+        }
       }
     });
   }
+
+  // Delete staff
+  document.querySelectorAll('.btn-delete-staff').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.staffId;
+      const name = btn.dataset.staffName || '';
+      if (!id) return;
+      const confirmMsg = name ? `Bạn có chắc chắn muốn xóa nhân viên "${name}"?` : 'Bạn có chắc chắn muốn xóa nhân viên này?';
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+      const url = STAFF_URLS.delete.replace('/0/', `/${id}/`);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCsrfToken() },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          if (window.showMessage) {
+            window.showMessage(data.message || 'Đã xóa nhân viên.', 'success');
+            setTimeout(() => location.reload(), 1200);
+          } else {
+            console.log(data.message || 'Đã xóa nhân viên.');
+            location.reload();
+          }
+        } else {
+          const msg = (data && data.message) || 'Không thể xóa nhân viên.';
+          if (window.showMessage) {
+            window.showMessage(msg, 'error');
+          } else {
+            console.error(msg);
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        if (window.showMessage) {
+          window.showMessage('Có lỗi xảy ra khi xóa nhân viên.', 'error');
+        } else {
+          console.error('Có lỗi xảy ra khi xóa nhân viên.');
+        }
+      }
+    });
+  });
 });
 </script>
 

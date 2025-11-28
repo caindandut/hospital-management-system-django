@@ -194,16 +194,24 @@ def build_available_slots(doctor_id, work_date):
         status="OPEN"
     )
 
-    # Get taken appointment times
-    taken_times = set(
-        Appointments.objects
-        .filter(
+    # Get taken appointment times (respect local day range to avoid TZ drift)
+    local_tz = timezone.get_default_timezone()
+    day_start = timezone.make_aware(datetime.combine(work_date, time.min), local_tz)
+    day_end = timezone.make_aware(datetime.combine(work_date, time.max), local_tz)
+
+    appt_times = (
+        Appointments.objects.filter(
             doctor_id=doctor_id,
-            appointment_at__date=work_date,
+            appointment_at__range=(day_start, day_end),
         )
         .exclude(status__in=EXCLUDE_STATUSES)
-        .values_list("appointment_at__time", flat=True)
+        .values_list("appointment_at", flat=True)
     )
+
+    taken_slots = set()
+    for ts in appt_times:
+        local_ts = timezone.localtime(ts) if timezone.is_aware(ts) else ts
+        taken_slots.add(local_ts.strftime("%H:%M"))
 
     slots = []
     for schedule in schedules:
@@ -221,7 +229,7 @@ def build_available_slots(doctor_id, work_date):
             available = True
 
             # Check if slot is already taken
-            if start_time in taken_times:
+            if start_str in taken_slots:
                 available = False
 
             # If today: disable slots that have already ended

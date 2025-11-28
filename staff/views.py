@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField, Q
 from django.shortcuts import get_object_or_404
 from clinic.decorators import staff_or_admin_required, admin_required
 from billing.models import Invoices, InvoiceItems, Payments, InvoicePrintLogs
@@ -142,15 +142,40 @@ def staff_profile_manage(request):
 
 # ===================== CASHIER VIEWS =====================
 
-@staff_or_admin_required
-def cashier_invoices(request):
+def _cashier_invoices_common(request, status: str, page_title: str):
+    search_query = (request.GET.get("q") or "").strip()
+
     qs = (Invoices.objects
           .select_related("appointment__patient__user",
                           "appointment__doctor__user",
                           "appointment__doctor")
-          .filter(status="UNPAID")
+          .filter(status=status)
           .order_by("-created_at"))
-    return render(request, "staff/cashier_list.html", {"invoices": qs})
+
+    if search_query:
+        qs = qs.filter(
+            Q(appointment__patient__user__full_name__icontains=search_query) |
+            Q(appointment__doctor__user__full_name__icontains=search_query)
+        )
+
+    context = {
+        "invoices": qs,
+        "active_status": status,
+        "search_query": search_query,
+        "page_title": page_title,
+        "nav_active": status,
+    }
+    return render(request, "staff/cashier_list.html", context)
+
+
+@staff_or_admin_required
+def cashier_invoices(request):
+    return _cashier_invoices_common(request, "UNPAID", "Hóa đơn chờ thanh toán")
+
+
+@staff_or_admin_required
+def cashier_paid_invoices(request):
+    return _cashier_invoices_common(request, "PAID", "Hóa đơn đã thanh toán")
 
 
 @staff_or_admin_required
@@ -251,6 +276,8 @@ def invoice_print(request, pk):
         "invoice": inv,
         "lines": lines,
         "clinic": clinic,
+        "total": total,
+        "cashier": ext_user or inv.printed_by_user,
     })
 
 

@@ -89,6 +89,12 @@
               <div class="btn-group">
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editDoctorModal{{ d.id }}">Sửa</button>
                 <a href="{% url 'adminpanel:admin_doctor_toggle_active' d.id %}" class="btn btn-sm btn-outline-warning">{% if d.user.is_active %}Khóa{% else %}Mở{% endif %}</a>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger btn-delete-doctor"
+                        data-doctor-id="{{ d.id }}"
+                        data-doctor-name="{{ d.user.full_name }}">
+                  Xóa
+                </button>
               </div>
             </td>
           </tr>
@@ -264,6 +270,14 @@
   {{ fee_mapping|json_script:"feeMappingData" }}
   <script>
   (() => {
+    const DOCTOR_URLS = {
+      delete: '{% url "adminpanel:admin_doctor_delete" 0 %}',
+    };
+    const getCsrfToken = () => {
+      const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      return input ? input.value : '{{ csrf_token }}';
+    };
+
     // VND input formatting
     function unformat(v){return (v||'').toString().replace(/[^0-9]/g,'');}
     function format(v){try{const n=unformat(v); if(!n) return ''; return Number(n).toLocaleString('vi-VN');}catch(e){return v;}}
@@ -277,6 +291,50 @@
         e.target.querySelectorAll('.vnd-input').forEach(inp=>{inp.value=unformat(inp.value)});
       }
     }, true);
+
+    // Delete doctor buttons
+    document.querySelectorAll('.btn-delete-doctor').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.doctorId;
+        const name = btn.dataset.doctorName || '';
+        if (!id) return;
+        const confirmed = confirm(name ? `Bạn có chắc chắn muốn xóa bác sĩ "${name}"?` : 'Bạn có chắc chắn muốn xóa bác sĩ này?');
+        if (!confirmed) {
+          return;
+        }
+        const url = DOCTOR_URLS.delete.replace('/0/', `/${id}/`);
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.ok) {
+          if (window.showMessage) {
+            window.showMessage(data.message || 'Đã xóa bác sĩ.', 'success');
+            setTimeout(() => location.reload(), 1200);
+          } else {
+            console.log(data.message || 'Đã xóa bác sĩ.');
+            location.reload();
+          }
+          } else {
+            const msg = (data && data.message) || 'Không thể xóa bác sĩ.';
+          if (window.showMessage) {
+            window.showMessage(msg, 'error');
+          } else {
+            console.error(msg);
+          }
+          }
+        } catch (error) {
+          console.error(error);
+        if (window.showMessage) {
+          window.showMessage('Có lỗi xảy ra khi xóa bác sĩ.', 'error');
+        } else {
+          console.error('Có lỗi xảy ra khi xóa bác sĩ.');
+        }
+        }
+      });
+    });
 
     const form = document.getElementById('formCreateDoctor');
     if (form) {
@@ -313,6 +371,17 @@
       password.addEventListener('input', validatePasswordMatch);
       password2.addEventListener('input', validatePasswordMatch);
       
+      function markInvalidDoctorField(name, message) {
+        const input = form.querySelector(`[name="${name}"]`);
+        if (!input) return;
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        const fb = input.nextElementSibling;
+        if (fb && fb.classList.contains('invalid-feedback') && message) {
+          fb.textContent = message;
+        }
+      }
+
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         console.log('Form submitted');
@@ -328,23 +397,75 @@
         console.log('Form validation passed, sending request...');
         const fd = new FormData(form);
         fd.set('consultation_fee', unformat(fd.get('consultation_fee')));
+        
+        // Get CSRF token from form
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+        
         try {
           const res = await fetch("{% url 'adminpanel:admin_doctors_create' %}", { 
             method: 'POST', 
-            headers: {'X-CSRFToken': '{{ csrf_token }}'}, 
+            headers: {
+              'X-CSRFToken': csrfToken
+            }, 
             body: fd 
           });
           console.log('Response status:', res.status);
+          
+          if (!res.ok) {
+            // Try to get error message from response
+            let errorMsg = 'Có lỗi xảy ra khi tạo bác sĩ';
+            try {
+              const errorData = await res.json();
+              errorMsg = errorData.msg || errorMsg;
+            } catch (e) {
+              errorMsg = `Lỗi ${res.status}: ${res.statusText}`;
+            }
+            // Đánh dấu input sai điều kiện
+            if (errorMsg.includes('Email')) {
+              markInvalidDoctorField('email', errorMsg);
+            }
+            if (errorMsg.includes('giấy phép')) {
+              markInvalidDoctorField('license_number', errorMsg);
+            }
+            if (window.showMessage) {
+              window.showMessage(errorMsg, 'error');
+            } else {
+              console.error(errorMsg);
+            }
+            return;
+          }
+          
           const data = await res.json();
           console.log('Response data:', data);
           if(data.ok){ 
-            location.reload(); 
+            if (window.showMessage) {
+              window.showMessage('Đã tạo bác sĩ thành công!', 'success');
+              setTimeout(() => location.reload(), 1500);
+            } else {
+              console.log('Đã tạo bác sĩ thành công!');
+              location.reload();
+            }
           } else { 
-            // Error occurred 
+            const msg = data.msg || 'Có lỗi xảy ra khi tạo bác sĩ';
+            if (msg.includes('Email')) {
+              markInvalidDoctorField('email', msg);
+            }
+            if (msg.includes('giấy phép')) {
+              markInvalidDoctorField('license_number', msg);
+            }
+            if (window.showMessage) {
+              window.showMessage(msg, 'error');
+            } else {
+              console.error(msg);
+            }
           }
         } catch (error) {
           console.error('Request failed:', error);
-          // Error occurred
+          if (window.showMessage) {
+            window.showMessage('Có lỗi xảy ra: ' + error.message, 'error');
+          } else {
+            console.error('Có lỗi xảy ra: ' + error.message);
+          }
         }
       });
     } else {
@@ -406,7 +527,7 @@
             if (window.showMessage) {
               window.showMessage('error', errorData.msg || 'Có lỗi xảy ra');
             } else {
-              alert(errorData.msg || 'Có lỗi xảy ra');
+              console.error(errorData.msg || 'Có lỗi xảy ra');
             }
             return;
           }
@@ -421,7 +542,7 @@
             if (window.showMessage) {
               window.showMessage('error', data.msg || 'Có lỗi xảy ra');
             } else {
-              alert(data.msg || 'Có lỗi xảy ra');
+              console.error(data.msg || 'Có lỗi xảy ra');
             }
           }
         } catch (error) {
@@ -429,7 +550,7 @@
           if (window.showMessage) {
             window.showMessage('error', 'Có lỗi xảy ra khi cập nhật');
           } else {
-            alert('Có lỗi xảy ra khi cập nhật');
+            console.error('Có lỗi xảy ra khi cập nhật');
           }
         }
       });
