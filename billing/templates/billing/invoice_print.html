@@ -7,7 +7,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <title>Hóa đơn khám bệnh #{{ invoice.id }}</title>
+  <title>Hóa đơn khám bệnh #{{ invoice.id|stringformat:"05d" }}</title>
   <style>
     body { 
       font-family: Arial, Helvetica, sans-serif; 
@@ -107,7 +107,7 @@
   <div class="invoice-info">
     <div class="info-group">
       <div class="info-row">
-        <span class="info-label">Mã hóa đơn:</span> #{{ invoice.id }}
+        <span class="info-label">Mã hóa đơn:</span> #{{ invoice.id|stringformat:"05d" }}
       </div>
       <div class="info-row">
         <span class="info-label">Ngày in:</span> {% now "d/m/Y H:i" %}

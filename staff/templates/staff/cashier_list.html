@@ -192,19 +192,21 @@
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th style="width: 8%;">#</th>
-                <th style="width: 22%;">Bệnh nhân</th>
-                <th style="width: 20%;">Bác sĩ</th>
-                <th style="width: 18%;">Ngày khám</th>
-                <th style="width: 15%;">Số tiền</th>
-                <th style="width: 12%;">Trạng thái</th>
-                <th style="width: 5%;"></th>
+                <th style="width: 5%;">STT</th>
+                <th style="width: 12%;">Mã hóa đơn</th>
+                <th style="width: 20%;">Bệnh nhân</th>
+                <th style="width: 18%;">Bác sĩ</th>
+                <th style="width: 15%;">Ngày khám</th>
+                <th style="width: 12%;">Số tiền</th>
+                <th style="width: 10%;">Trạng thái</th>
+                <th style="width: 8%;"></th>
               </tr>
             </thead>
             <tbody>
             {% for inv in invoices %}
               <tr>
-                <td class="fw-bold text-primary">#{{ inv.id }}</td>
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-bold text-primary">#{{ inv.id|stringformat:"05d" }}</td>
                 <td>
                   <div class="fw-semibold">{{ inv.appointment.patient.user.full_name }}</div>
                   <small class="text-muted">{{ inv.appointment.patient.user.phone|default:"-" }}</small>
@@ -245,7 +247,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="7" class="text-center py-5">
+                <td colspan="8" class="text-center py-5">
                   <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
                   <p class="text-muted mt-2 mb-0">
                     {% if search_query %}

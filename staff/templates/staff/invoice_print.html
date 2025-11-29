@@ -15,7 +15,7 @@
 
   <div class="info-section">
     <div class="row g-2 small mb-3">
-      <div class="col-md-6"><strong>Mã hóa đơn:</strong> #{{ inv.id }}</div>
+      <div class="col-md-6"><strong>Mã hóa đơn:</strong> #{{ inv.id|stringformat:"05d" }}</div>
       <div class="col-md-6"><strong>Ngày:</strong> {{ inv.appointment.appointment_at|date:"d/m/Y H:i" }}</div>
       <div class="col-md-6"><strong>Bệnh nhân:</strong> {{ inv.appointment.patient.user.full_name }}</div>
       <div class="col-md-6"><strong>Bác sĩ:</strong> {{ inv.appointment.doctor.user.full_name }}</div>
