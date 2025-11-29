@@ -1149,19 +1149,34 @@ def admin_patient_create(request):
     address = request.POST.get("address") or None
     is_active = 1 if (request.POST.get("is_active") == "on") else 0
 
-    if not full_name or not email or not cccd or not password:
-        return JsonResponse({"ok": False, "message": "Vui lòng nhập đầy đủ thông tin bắt buộc."}, status=400)
+    errors = {}
     
-    if password != password2:
-        return JsonResponse({"ok": False, "message": "Mật khẩu xác nhận không khớp."}, status=400)
+    if not full_name:
+        errors["full_name"] = "Vui lòng nhập họ tên."
+    if not email:
+        errors["email"] = "Vui lòng nhập email."
+    elif not "@" in email or not "." in email.split("@")[1]:
+        errors["email"] = "Email không hợp lệ."
+    if not cccd:
+        errors["cccd"] = "Vui lòng nhập CCCD."
+    if not password:
+        errors["password"] = "Vui lòng nhập mật khẩu."
+    elif len(password) < 6:
+        errors["password"] = "Mật khẩu phải có ít nhất 6 ký tự."
+    if password and password2 and password != password2:
+        errors["password2"] = "Mật khẩu xác nhận không khớp."
     
-    if len(password) < 6:
-        return JsonResponse({"ok": False, "message": "Mật khẩu phải có ít nhất 6 ký tự."}, status=400)
+    if email and AccountsUsers.objects.filter(email=email).exists():
+        errors["email"] = "Email đã tồn tại trong hệ thống."
+    if cccd and PatientProfiles.objects.filter(cccd=cccd).exists():
+        errors["cccd"] = "CCCD đã tồn tại trong hệ thống."
     
-    if AccountsUsers.objects.filter(email=email).exists():
-        return JsonResponse({"ok": False, "message": "Email đã tồn tại."}, status=400)
-    if PatientProfiles.objects.filter(cccd=cccd).exists():
-        return JsonResponse({"ok": False, "message": "CCCD đã tồn tại."}, status=400)
+    if errors:
+        return JsonResponse({
+            "ok": False, 
+            "message": "Vui lòng kiểm tra lại các trường đã nhập.",
+            "errors": errors
+        }, status=400)
 
     try:
         now = timezone.now()

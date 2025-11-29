@@ -298,10 +298,6 @@
         const id = btn.dataset.doctorId;
         const name = btn.dataset.doctorName || '';
         if (!id) return;
-        const confirmed = confirm(name ? `Bạn có chắc chắn muốn xóa bác sĩ "${name}"?` : 'Bạn có chắc chắn muốn xóa bác sĩ này?');
-        if (!confirmed) {
-          return;
-        }
         const url = DOCTOR_URLS.delete.replace('/0/', `/${id}/`);
         try {
           const res = await fetch(url, {

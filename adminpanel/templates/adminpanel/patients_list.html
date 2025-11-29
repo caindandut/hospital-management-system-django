@@ -95,30 +95,37 @@
               <div class="col-md-6">
                 <label class="form-label">Họ tên</label>
                 <input name="full_name" class="form-control" required>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Email</label>
                 <input name="email" type="email" class="form-control" required>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6" id="passwordGroup">
                 <label class="form-label">Mật khẩu *</label>
                 <input name="password" type="password" class="form-control" required>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6" id="password2Group">
                 <label class="form-label">Nhập lại mật khẩu *</label>
                 <input name="password2" type="password" class="form-control" required>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6">
                 <label class="form-label">CCCD</label>
                 <input name="cccd" class="form-control" required>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-4">
                 <label class="form-label">SĐT</label>
                 <input name="phone" class="form-control">
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Ngày sinh</label>
                 <input name="date_of_birth" type="date" class="form-control">
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Giới tính</label>
@@ -127,10 +134,12 @@
                   <option value="MALE">Nam</option>
                   <option value="FEMALE">Nữ</option>
                 </select>
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-12">
                 <label class="form-label">Địa chỉ</label>
                 <input name="address" class="form-control">
+                <div class="invalid-feedback"></div>
               </div>
               <div class="col-12">
                 <div class="form-check">
@@ -326,6 +335,15 @@
         }
       }
       
+      function clearAllFieldErrors() {
+        formEl.querySelectorAll('.is-invalid').forEach(el => {
+          el.classList.remove('is-invalid');
+        });
+        formEl.querySelectorAll('.invalid-feedback').forEach(el => {
+          el.textContent = '';
+        });
+      }
+      
       try {
         const res = await fetch(url, {
           method: method,
@@ -339,19 +357,51 @@
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ message: 'Có lỗi xảy ra' }));
           console.error('Error response:', errorData);
-          const msg = errorData.message || 'Có lỗi xảy ra';
-          if (msg.includes('Email')) {
-            markInvalidPatientField('email', msg);
+          
+          clearAllFieldErrors();
+          
+          // Handle field-specific errors
+          if (errorData.errors) {
+            let errorMessages = [];
+            const fieldLabels = {
+              'full_name': 'Họ tên',
+              'email': 'Email',
+              'password': 'Mật khẩu',
+              'password2': 'Xác nhận mật khẩu',
+              'cccd': 'CCCD',
+              'phone': 'SĐT',
+              'date_of_birth': 'Ngày sinh',
+              'gender': 'Giới tính',
+              'address': 'Địa chỉ'
+            };
+            Object.keys(errorData.errors).forEach(fieldName => {
+              const errorMsg = errorData.errors[fieldName];
+              markInvalidPatientField(fieldName, errorMsg);
+              const fieldLabel = fieldLabels[fieldName] || fieldName;
+              errorMessages.push(`${fieldLabel}: ${errorMsg}`);
+            });
+            
+            const detailedMsg = errorMessages.join(' | ');
+            if (window.showMessage) {
+              window.showMessage(detailedMsg, 'error');
+            } else {
+              console.error(detailedMsg);
+            }
+          } else {
+            const msg = errorData.message || 'Có lỗi xảy ra';
+            if (window.showMessage) {
+              window.showMessage(msg, 'error');
+            } else {
+              console.error(msg);
+            }
           }
-          if (msg.includes('CCCD')) {
-            markInvalidPatientField('cccd', msg);
-          }
-          throw new Error(msg);
+          return;
         }
         
         const data = await res.json();
         console.log('Response data:', data);
         if (data.ok) {
+          clearAllFieldErrors();
           if (window.showMessage) {
             window.showMessage(data.message || 'Đã lưu thay đổi', 'success');
             if (modal) {
@@ -370,17 +420,42 @@
             location.reload();
           }
         } else {
-          const msg = data.message || 'Có lỗi xảy ra';
-          if (msg.includes('Email')) {
-            markInvalidPatientField('email', msg);
-          }
-          if (msg.includes('CCCD')) {
-            markInvalidPatientField('cccd', msg);
-          }
-          if (window.showMessage) {
-            window.showMessage(msg, 'error');
+          clearAllFieldErrors();
+          
+          // Handle field-specific errors
+          if (data.errors) {
+            let errorMessages = [];
+            const fieldLabels = {
+              'full_name': 'Họ tên',
+              'email': 'Email',
+              'password': 'Mật khẩu',
+              'password2': 'Xác nhận mật khẩu',
+              'cccd': 'CCCD',
+              'phone': 'SĐT',
+              'date_of_birth': 'Ngày sinh',
+              'gender': 'Giới tính',
+              'address': 'Địa chỉ'
+            };
+            Object.keys(data.errors).forEach(fieldName => {
+              const errorMsg = data.errors[fieldName];
+              markInvalidPatientField(fieldName, errorMsg);
+              const fieldLabel = fieldLabels[fieldName] || fieldName;
+              errorMessages.push(`${fieldLabel}: ${errorMsg}`);
+            });
+            
+            const detailedMsg = errorMessages.join(' | ');
+            if (window.showMessage) {
+              window.showMessage(detailedMsg, 'error');
+            } else {
+              console.error(detailedMsg);
+            }
           } else {
-            console.error(msg);
+            const msg = data.message || 'Có lỗi xảy ra';
+            if (window.showMessage) {
+              window.showMessage(msg, 'error');
+            } else {
+              console.error(msg);
+            }
           }
         }
       } catch (error) {
@@ -426,13 +501,6 @@
         const id = this.dataset.patientId;
         const name = this.dataset.patientName || '';
         if (!id) return;
-
-        const confirmMsg = name
-          ? `Bạn có chắc chắn muốn xóa bệnh nhân "${name}"?`
-          : 'Bạn có chắc chắn muốn xóa bệnh nhân này?';
-        if (!confirm(confirmMsg)) {
-          return;
-        }
 
         const url = URLS.patientDelete.replace('/0/', '/' + id + '/');
 

@@ -550,10 +550,6 @@ document.addEventListener('DOMContentLoaded', function() {
       const id = btn.dataset.staffId;
       const name = btn.dataset.staffName || '';
       if (!id) return;
-      const confirmMsg = name ? `Bạn có chắc chắn muốn xóa nhân viên "${name}"?` : 'Bạn có chắc chắn muốn xóa nhân viên này?';
-      if (!confirm(confirmMsg)) {
-        return;
-      }
       const url = STAFF_URLS.delete.replace('/0/', `/${id}/`);
       try {
         const res = await fetch(url, {
