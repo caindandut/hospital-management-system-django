@@ -48,6 +48,8 @@ def _local_day_range(d: date):
 @doctor_or_staff_required
 def schedule_index(request):
     """Hiển thị form tạo khung lịch và danh sách lịch làm việc"""
+    from django.core.paginator import Paginator
+    
     user = request.user
     
     # Lấy danh sách bác sĩ cho dropdown (chỉ hiển thị nếu user là STAFF)
@@ -55,8 +57,8 @@ def schedule_index(request):
     if _get_user_role(request) == Role.STAFF:
         doctors = Doctors.objects.select_related('user').all()
     
-    # Lấy danh sách lịch làm việc
-    schedules = Schedules.objects.select_related('doctor__user').all()
+    # Lấy danh sách lịch làm việc, sắp xếp mới nhất lên trước (theo thời gian tạo)
+    schedules = Schedules.objects.select_related('doctor__user').order_by('-created_at', '-work_date')
     
     # Nếu user là DOCTOR, chỉ hiển thị lịch của chính mình
     if _get_user_role(request) == Role.DOCTOR:
@@ -76,9 +78,15 @@ def schedule_index(request):
     if filter_doctor and _get_user_role(request) == Role.STAFF:
         schedules = schedules.filter(doctor_id=filter_doctor)
     
+    # Phân trang: 10 items mỗi trang
+    paginator = Paginator(schedules, 10)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
     context = {
         'doctors': doctors,
-        'schedules': schedules,
+        'schedules': page_obj,
+        'page_obj': page_obj,
         'user_role': getattr(user, 'role', None),
         'filter_date': filter_date,
         'filter_doctor': filter_doctor,

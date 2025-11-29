@@ -104,12 +104,12 @@
               </div>
               <div class="col-md-6" id="passwordGroup">
                 <label class="form-label">Mật khẩu *</label>
-                <input name="password" type="password" class="form-control" required>
+                <input name="password" type="password" class="form-control" required autocomplete="new-password">
                 <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6" id="password2Group">
                 <label class="form-label">Nhập lại mật khẩu *</label>
-                <input name="password2" type="password" class="form-control" required>
+                <input name="password2" type="password" class="form-control" required autocomplete="new-password">
                 <div class="invalid-feedback"></div>
               </div>
               <div class="col-md-6">
@@ -172,6 +172,18 @@
   let currentPatientId = null;
   let modal = null;
   
+  function clearAllFieldErrors() {
+    const formEl = document.getElementById('patientForm');
+    if (!formEl) return;
+    formEl.querySelectorAll('.is-invalid').forEach(el => {
+      el.classList.remove('is-invalid');
+    });
+    formEl.querySelectorAll('.invalid-feedback').forEach(el => {
+      el.textContent = '';
+    });
+    formEl.classList.remove('was-validated');
+  }
+  
   function openCreate() {
     currentPatientId = null;
     document.getElementById('patientModalTitle').textContent = 'Thêm bệnh nhân';
@@ -179,7 +191,14 @@
     document.getElementById('password2Group').style.display = '';
     document.querySelector('[name="password"]').required = true;
     document.querySelector('[name="password2"]').required = true;
+    document.querySelector('[name="password"]').placeholder = '';
+    document.querySelector('[name="password2"]').placeholder = '';
     document.getElementById('patientForm').reset();
+    // Enable email field for create mode
+    const emailInput = document.querySelector('[name="email"]');
+    emailInput.readOnly = false;
+    emailInput.style.backgroundColor = '';
+    clearAllFieldErrors();
     if (!modal) {
       const modalEl = document.getElementById('patientModal');
       modal = new bootstrap.Modal(modalEl, {
@@ -218,8 +237,14 @@
         document.querySelector('[name="password"]').placeholder = 'Để trống nếu không đổi';
         document.querySelector('[name="password2"]').required = false;
         
+        // Clear all previous errors
+        clearAllFieldErrors();
+        
         document.querySelector('[name="full_name"]').value = this.dataset.fullname || '';
-        document.querySelector('[name="email"]').value = this.dataset.email || '';
+        const emailInput = document.querySelector('[name="email"]');
+        emailInput.value = this.dataset.email || '';
+        emailInput.readOnly = true;
+        emailInput.style.backgroundColor = '#e9ecef';
         document.querySelector('[name="cccd"]').value = this.dataset.cccd || '';
         document.querySelector('[name="phone"]').value = this.dataset.phone || '';
         document.querySelector('[name="date_of_birth"]').value = this.dataset.dob || '';
@@ -239,6 +264,11 @@
     // Ensure backdrop is removed when modal is hidden
     const patientModalEl = document.getElementById('patientModal');
     if (patientModalEl) {
+      // Clear errors when modal is shown
+      patientModalEl.addEventListener('show.bs.modal', function() {
+        clearAllFieldErrors();
+      });
+      
       patientModalEl.addEventListener('hidden.bs.modal', function() {
         // Remove any remaining backdrop elements
         const backdrops = document.querySelectorAll('.modal-backdrop');
@@ -247,6 +277,8 @@
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
+        // Clear errors when modal is hidden
+        clearAllFieldErrors();
       });
     }
     
@@ -333,15 +365,6 @@
         if (fb && fb.classList.contains('invalid-feedback') && message) {
           fb.textContent = message;
         }
-      }
-      
-      function clearAllFieldErrors() {
-        formEl.querySelectorAll('.is-invalid').forEach(el => {
-          el.classList.remove('is-invalid');
-        });
-        formEl.querySelectorAll('.invalid-feedback').forEach(el => {
-          el.textContent = '';
-        });
       }
       
       try {
@@ -476,6 +499,14 @@
       document.querySelector('[name="password"]').required = true;
       document.querySelector('[name="password2"]').required = true;
       document.querySelector('[name="password"]').placeholder = '';
+      document.querySelector('[name="password2"]').placeholder = '';
+      // Enable email field for create mode
+      const emailInput = document.querySelector('[name="email"]');
+      if (emailInput) {
+        emailInput.readOnly = false;
+        emailInput.style.backgroundColor = '';
+      }
+      clearAllFieldErrors();
       if (!modal) {
         modal = new bootstrap.Modal(modalEl);
       }
@@ -484,6 +515,13 @@
       // This block is for URL-based edit (legacy support)
       titleEl.textContent = 'Sửa bệnh nhân';
       pwdGroup.style.display = '';
+      // Disable email field for edit mode
+      const emailInput = document.querySelector('[name="email"]');
+      if (emailInput) {
+        emailInput.readOnly = true;
+        emailInput.style.backgroundColor = '#e9ecef';
+      }
+      clearAllFieldErrors();
       if (!modal) {
         modal = new bootstrap.Modal(modalEl);
       }
