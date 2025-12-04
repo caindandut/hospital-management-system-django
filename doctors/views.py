@@ -185,8 +185,20 @@ def doctor_visit_summary(request, appointment_id):
         medical_record = None
         prescriptions = []
     
-    # Calculate consultation fee based on doctor's rank
-    consultation_fee = get_consultation_fee(appointment.doctor)
+    # Get consultation fee from invoice if available, otherwise calculate dynamically
+    consultation_fee = None
+    try:
+        invoice = appointment.invoice
+        consult_item = invoice.items.filter(item_type="CONSULTATION").first()
+        if consult_item:
+            consultation_fee = int(consult_item.unit_price)
+    except (AttributeError, ValueError, Exception):
+        # Invoice doesn't exist or consultation item not found - will use dynamic calculation
+        pass
+    
+    # Fallback to dynamic calculation if no stored fee
+    if consultation_fee is None:
+        consultation_fee = get_consultation_fee(appointment.doctor)
     
     # Calculate total medication cost
     medication_total = sum(
@@ -274,8 +286,20 @@ def doctor_visit_summary_print(request, appointment_id):
         medical_record = None
         prescriptions = []
     
-    # Calculate consultation fee based on doctor's rank
-    consultation_fee = get_consultation_fee(appointment.doctor)
+    # Get consultation fee from invoice if available, otherwise calculate dynamically
+    consultation_fee = None
+    try:
+        invoice = appointment.invoice
+        consult_item = invoice.items.filter(item_type="CONSULTATION").first()
+        if consult_item:
+            consultation_fee = int(consult_item.unit_price)
+    except (AttributeError, ValueError, Exception):
+        # Invoice doesn't exist or consultation item not found - will use dynamic calculation
+        pass
+    
+    # Fallback to dynamic calculation if no stored fee
+    if consultation_fee is None:
+        consultation_fee = get_consultation_fee(appointment.doctor)
     
     # Calculate total medication cost
     medication_total = sum(
@@ -330,8 +354,20 @@ def doctor_visit_summary_pdf(request, appointment_id):
         medical_record = None
         prescriptions = []
     
-    # Calculate consultation fee based on doctor's rank
-    consultation_fee = get_consultation_fee(appointment.doctor)
+    # Get consultation fee from invoice if available, otherwise calculate dynamically
+    consultation_fee = None
+    try:
+        invoice = appointment.invoice
+        consult_item = invoice.items.filter(item_type="CONSULTATION").first()
+        if consult_item:
+            consultation_fee = int(consult_item.unit_price)
+    except (AttributeError, ValueError, Exception):
+        # Invoice doesn't exist or consultation item not found - will use dynamic calculation
+        pass
+    
+    # Fallback to dynamic calculation if no stored fee
+    if consultation_fee is None:
+        consultation_fee = get_consultation_fee(appointment.doctor)
     
     # Calculate total medication cost
     medication_total = sum(

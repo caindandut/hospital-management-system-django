@@ -732,22 +732,40 @@ def my_appointments(request):
         patient_profile = PatientProfiles.objects.get(user=users_instance)
         
         # Lấy danh sách appointments
-        from django.db.models import Case, When, IntegerField, Value, Subquery, OuterRef, CharField
-        from django.db.models.functions import Cast, Upper
+        from django.db.models import Case, When, IntegerField, Value, Subquery, OuterRef, CharField, DecimalField
+        from django.db.models.functions import Cast, Upper, Coalesce
         from adminpanel.models import DoctorRankFee
-        from billing.models import Invoices
+        from billing.models import Invoices, InvoiceItems
+        from core.choices import ItemType
         from .models import AppointmentLogs
         
+        # Subquery để lấy phí khám đã lưu trong InvoiceItems (nếu có)
+        stored_fee_subquery = Subquery(
+            InvoiceItems.objects.filter(
+                invoice__appointment_id=OuterRef("pk"),
+                item_type=ItemType.CONSULTATION
+            ).values('unit_price')[:1]
+        )
+        
+        # Subquery để tính phí động từ rank (chỉ dùng khi chưa có invoice)
         rank_fee_subquery = Subquery(
             DoctorRankFee.objects.filter(rank__iexact=OuterRef('doctor__rank'))
             .values('default_fee')[:1]
         )
         
-        fee_case = Case(
+        # Tính phí động (fallback khi chưa có invoice)
+        dynamic_fee_case = Case(
             When(doctor__rank__isnull=False, then=rank_fee_subquery),
             When(doctor__consultation_fee__isnull=False, then=Cast('doctor__consultation_fee', IntegerField())),
             default=Value(200000),
             output_field=IntegerField(),
+        )
+        
+        # Ưu tiên phí đã lưu trong invoice, nếu không có thì dùng phí động
+        fee_case = Coalesce(
+            Cast(stored_fee_subquery, IntegerField()),
+            dynamic_fee_case,
+            output_field=IntegerField()
         )
         
         inv_sub = Invoices.objects.filter(
