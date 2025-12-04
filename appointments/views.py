@@ -881,11 +881,14 @@ def doctor_today(request):
     from billing.models import Invoices
     
     inv_sub = Invoices.objects.filter(appointment_id=OuterRef("pk")).values_list("status", flat=True)[:1]
-    base_qs = (Appointments.objects
-               .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
-               .filter(doctor__user_id=ext_user.id, appointment_at__range=(start_dt, end_dt))
-               .annotate(invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)))
-               .order_by("appointment_at"))
+    base_qs = (
+        Appointments.objects
+        .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
+        .filter(doctor__user_id=ext_user.id, appointment_at__range=(start_dt, end_dt))
+        .annotate(invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8)))
+        # Sắp xếp ca khám hôm nay: bệnh nhân mới nhất (giờ hẹn trễ hơn) lên trên cùng
+        .order_by("-appointment_at")
+    )
     
     # Build simple stats for today
     from django.db.models import Count, Q
@@ -1035,11 +1038,14 @@ def pending_appointments(request):
         return redirect("theme:home")
     
     # Get pending, confirmed and cancelled appointments for this doctor
-    appointments = (Appointments.objects
-                   .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
-                   .filter(doctor__user_id=ext_user.id)
-                   .filter(status__in=['PENDING', 'CONFIRMED', 'CANCELLED'])
-                   .order_by('appointment_at'))
+    appointments = (
+        Appointments.objects
+        .select_related("doctor__user", "doctor", "doctor__specialty", "schedule", "patient__user")
+        .filter(doctor__user_id=ext_user.id)
+        .filter(status__in=['PENDING', 'CONFIRMED', 'CANCELLED'])
+        # Sắp xếp lịch mới nhất (giờ hẹn trễ hơn) lên trên cùng
+        .order_by('-appointment_at')
+    )
     
     # Build stats
     stats = appointments.aggregate(

@@ -91,6 +91,13 @@ def complete_appointment(appt, actor):
     if appt.status != "IN_PROGRESS":
         raise ValueError(f"Cannot complete appointment with status {appt.status}")
     
+    # Bảo vệ sớm: yêu cầu phải có hồ sơ khám trước khi hoàn tất ca
+    # Nếu không có, hiển thị lỗi rõ ràng cho bác sĩ thay vì lỗi từ database/triggers.
+    try:
+        _ = appt.medical_record
+    except MedicalRecords.DoesNotExist:
+        raise ValueError("Vui lòng tạo hồ sơ khám bệnh trước khi hoàn tất ca.")
+    
     # 1) Update appointment status first to satisfy DB triggers
     appt.status = "COMPLETED"
     appt.save(update_fields=["status"])

@@ -302,7 +302,7 @@
                     <h5 class="modal-title">Hủy lịch hẹn</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="post" action="{% url 'appointments:cancel_appointment' appointment.id %}">
+                <form method="post" action="{% url 'doctors:cancel_appointment' appointment.id %}">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">

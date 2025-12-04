@@ -435,3 +435,66 @@ def doctor_confirm_appointment(request, pk):
     
     messages.success(request, f"Đã xác nhận lịch hẹn của {appointment.patient.user.full_name}.")
     return redirect("theme:home")
+
+
+@login_required
+@doctor_required
+def doctor_cancel_appointment(request, pk):
+    """Bác sĩ hủy lịch hẹn của bệnh nhân.
+    - Lý do hủy KHÔNG bắt buộc.
+    - Chỉ cho phép bác sĩ hủy các lịch của chính mình.
+    """
+    from django.utils import timezone
+    from appointments.models import Appointments, AppointmentLogs
+    from core.choices import ApptStatus
+    
+    if request.method != "POST":
+        messages.error(request, "Phương thức không được phép.")
+        return redirect("theme:home")
+    
+    # Lấy tài khoản ngoài tương ứng bác sĩ
+    ext_user = _get_ext_user(request)
+    if not ext_user:
+        messages.error(request, "Không tìm thấy tài khoản ngoài.")
+        return redirect("theme:home")
+    
+    doctor = Doctors.objects.select_related("user", "specialty").filter(user=ext_user).first()
+    if not doctor:
+        messages.error(request, "Không tìm thấy thông tin bác sĩ.")
+        return redirect("theme:home")
+    
+    # Tìm lịch hẹn thuộc về bác sĩ hiện tại
+    try:
+        appointment = Appointments.objects.get(id=pk, doctor=doctor)
+    except Appointments.DoesNotExist:
+        messages.error(request, "Không tìm thấy lịch hẹn hoặc bạn không có quyền hủy lịch này.")
+        return redirect("appointments:pending_appointments")
+    
+    # Chỉ cho phép hủy khi trạng thái phù hợp
+    if appointment.status not in [ApptStatus.PENDING, ApptStatus.CONFIRMED]:
+        messages.error(request, "Chỉ có thể hủy lịch hẹn đang chờ hoặc đã xác nhận.")
+        return redirect("appointments:pending_appointments")
+    
+    # Lý do hủy: KHÔNG bắt buộc
+    reason = (request.POST.get("reason") or "").strip()
+    
+    # Cập nhật trạng thái
+    appointment.status = ApptStatus.CANCELLED
+    appointment.updated_at = timezone.now()
+    appointment.save()
+    
+    # Ghi log với lý do (nếu có)
+    note = "Bác sĩ hủy lịch hẹn"
+    if reason:
+        note = f"{note} - Lý do: {reason}"
+    
+    AppointmentLogs.objects.create(
+        appointment=appointment,
+        action="CANCEL",
+        actor_user=ext_user,
+        note=note,
+        created_at=timezone.now(),
+    )
+    
+    messages.success(request, f"Đã hủy lịch hẹn của {appointment.patient.user.full_name}.")
+    return redirect("appointments:pending_appointments")
