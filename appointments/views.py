@@ -736,23 +736,24 @@ def my_appointments(request):
         from django.db.models.functions import Cast, Upper
         from adminpanel.models import DoctorRankFee
         from billing.models import Invoices
-
+        from .models import AppointmentLogs
+        
         rank_fee_subquery = Subquery(
             DoctorRankFee.objects.filter(rank__iexact=OuterRef('doctor__rank'))
             .values('default_fee')[:1]
         )
-
+        
         fee_case = Case(
             When(doctor__rank__isnull=False, then=rank_fee_subquery),
             When(doctor__consultation_fee__isnull=False, then=Cast('doctor__consultation_fee', IntegerField())),
             default=Value(200000),
             output_field=IntegerField(),
         )
-
+        
         inv_sub = Invoices.objects.filter(
             appointment_id=OuterRef("pk")
         ).values_list("status", flat=True)[:1]
-
+        
         appointments = (
             Appointments.objects.filter(patient=patient_profile)
             .select_related('doctor__user', 'doctor__specialty', 'schedule')
@@ -767,6 +768,32 @@ def my_appointments(request):
         paginator = Paginator(appointments, 10)  # 10 appointments per page
         page_number = request.GET.get('page')
         appointments_page = paginator.get_page(page_number)
+
+        # Lấy lý do hủy từ phía bác sĩ (nếu có) cho các lịch đã hủy
+        appt_ids = [a.id for a in appointments_page]
+        cancel_reasons = {}
+        if appt_ids:
+            cancel_logs = (
+                AppointmentLogs.objects
+                .select_related("actor_user")
+                .filter(appointment_id__in=appt_ids, action="CANCEL", actor_user__role="DOCTOR")
+                .order_by("appointment_id", "-created_at")
+            )
+            for log in cancel_logs:
+                # Chỉ lấy lần hủy gần nhất của bác sĩ cho mỗi lịch
+                if log.appointment_id not in cancel_reasons:
+                    raw_note = (log.note or "").strip()
+                    cleaned = raw_note
+                    # Chuẩn hóa: chỉ lấy phần "lý do" nếu note có dạng "Bác sĩ hủy lịch hẹn - Lý do: xxx"
+                    lower = raw_note.lower()
+                    if "lý do:" in lower:
+                        idx = lower.find("lý do:")
+                        cleaned = raw_note[idx + len("lý do:"):].strip(" -:") or raw_note
+                    cancel_reasons[log.appointment_id] = cleaned
+
+        # Gán thuộc tính động để template có thể hiển thị
+        for appt in appointments_page:
+            appt.cancel_reason_doctor = cancel_reasons.get(appt.id, "")
         
         # Settings cho thời gian hủy hẹn (phút)
         cancel_before_minutes = getattr(settings, 'APPOINTMENT_CANCEL_BEFORE_MINUTES', 120)

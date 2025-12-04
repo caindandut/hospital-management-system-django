@@ -162,6 +162,12 @@
         <p class="mb-0 text-muted">{{ appointment.reason }}</p>
       </div>
       {% endif %}
+      {% if appointment.status == "CANCELLED" and cancel_reason_doctor %}
+      <div class="mt-3">
+        <span class="detail-card__label">Lý do hủy (bác sĩ)</span>
+        <p class="mb-0 text-muted">{{ cancel_reason_doctor }}</p>
+      </div>
+      {% endif %}
     </section>
 
     <section class="detail-card">

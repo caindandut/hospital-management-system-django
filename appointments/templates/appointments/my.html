@@ -230,6 +230,7 @@
                                                             data-invoice-status="{{ appointment.invoice_status|default_if_none:'' }}"
                                                             data-fee="{{ appointment.effective_fee|default:0 }}"
                                                             data-note="{{ appointment.reason|default:'' }}"
+                                                            data-cancel-reason-doctor="{{ appointment.cancel_reason_doctor|default:'' }}"
                                                             data-cancel-url="{% if appointment.status in 'PENDING,CONFIRMED' %}{% url 'appointments:cancel_appointment' appointment.id %}{% endif %}">
                                                         <i class="bi bi-eye me-1"></i>Chi tiết
                                                     </button>
@@ -329,8 +330,8 @@
               <dt class="col-5">Phí khám:</dt>
               <dd class="col-7 fw-semibold text-success" id="dFee"></dd>
 
-              <dt class="col-5">Ghi chú:</dt>
-              <dd class="col-7" id="dNote"></dd>
+              <dt class="col-5 d-none" id="dNoteLabel">Ghi chú:</dt>
+              <dd class="col-7 d-none" id="dNote"></dd>
             </dl>
           </div>
           <div class="modal-footer">
@@ -404,7 +405,33 @@
             document.getElementById('dStatus').textContent = toViStatus(apptStatus);
           }
           document.getElementById('dFee').textContent      = vnd(data('fee')||0);
-          document.getElementById('dNote').textContent     = data('note');
+
+          // Ghi chú / lý do hủy: chỉ hiển thị nếu có nội dung
+          const bookingNote = data('note');
+          const cancelReasonDoctor = data('cancel-reason-doctor');
+          let finalNote = "";
+          let labelText = "Ghi chú:";
+
+          if (apptStatus === 'CANCELLED' && cancelReasonDoctor) {
+            finalNote = cancelReasonDoctor;
+            labelText = "Lý do hủy (bác sĩ):";
+          } else if (bookingNote) {
+            finalNote = bookingNote;
+            labelText = "Ghi chú:";
+          }
+
+          const noteEl = document.getElementById('dNote');
+          const noteLabelEl = document.getElementById('dNoteLabel');
+          if (finalNote) {
+            noteEl.textContent = finalNote;
+            noteLabelEl.textContent = labelText;
+            noteEl.classList.remove('d-none');
+            noteLabelEl.classList.remove('d-none');
+          } else {
+            noteEl.textContent = "";
+            noteEl.classList.add('d-none');
+            noteLabelEl.classList.add('d-none');
+          }
 
         });
       })();

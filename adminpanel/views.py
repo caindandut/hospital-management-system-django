@@ -612,9 +612,27 @@ def appointments(request):
     page_size = int(request.GET.get("page_size", 10))
 
     # Base queryset
-    qs = (Appointments.objects
-          .select_related("doctor", "doctor__user", "doctor__specialty",
-                          "patient", "patient__user"))
+    qs = (
+        Appointments.objects
+        .select_related(
+            "doctor",
+            "doctor__user",
+            "doctor__specialty",
+            "patient",
+            "patient__user",
+        )
+    )
+
+    # Annotate invoice status (PAID/UNPAID/None) để hiển thị đúng trạng thái đã khám nhưng chưa thanh toán
+    from django.db.models import Subquery, OuterRef, CharField
+    inv_sub = (
+        Invoices.objects
+        .filter(appointment_id=OuterRef("pk"))
+        .values_list("status", flat=True)[:1]
+    )
+    qs = qs.annotate(
+        invoice_status=Subquery(inv_sub, output_field=CharField(max_length=8))
+    )
 
     # Apply filters
     if date_from and date_to:
@@ -698,16 +716,45 @@ def appointment_detail(request, pk):
         Appointments.objects.select_related(
             "patient", "patient__user", "doctor", "doctor__user", "doctor__specialty"
         ),
-        pk=pk
+        pk=pk,
     )
+
     history = {
         "created": _localize_timestamp(appointment.created_at),
         "updated": _localize_timestamp(appointment.updated_at),
     }
+
+    # Lý do hủy từ phía bác sĩ (nếu có)
+    cancel_reason_doctor = ""
+    if appointment.status == "CANCELLED":
+        try:
+            log = (
+                AppointmentLogs.objects.select_related("actor_user")
+                .filter(appointment=appointment, action="CANCEL", actor_user__role="DOCTOR")
+                .order_by("-created_at")
+                .first()
+            )
+            if log and log.note:
+                raw = log.note.strip()
+                cleaned = raw
+                lower = raw.lower()
+                if "lý do:" in lower:
+                    idx = lower.find("lý do:")
+                    cleaned = raw[idx + len("lý do:") :].strip(" -:")
+                    if not cleaned:
+                        cleaned = raw
+                cancel_reason_doctor = cleaned
+        except Exception:
+            cancel_reason_doctor = ""
+
     return render(
         request,
         "adminpanel/appointment_detail.html",
-        {"appointment": appointment, "history": history},
+        {
+            "appointment": appointment,
+            "history": history,
+            "cancel_reason_doctor": cancel_reason_doctor,
+        },
     )
 
 

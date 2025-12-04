@@ -124,7 +124,11 @@
               {% elif a.status == "IN_PROGRESS" %}
                 <span class="badge text-bg-info">Đang khám</span>
               {% elif a.status == "COMPLETED" %}
-                <span class="badge text-bg-success">Đã khám</span>
+                {% if a.invoice_status == "PAID" %}
+                  <span class="badge text-bg-success">Hoàn thành</span>
+                {% else %}
+                  <span class="badge text-bg-warning text-dark">Đã khám - chờ thanh toán</span>
+                {% endif %}
               {% elif a.status == "CANCELLED" %}
                 <span class="badge text-bg-danger">Đã hủy</span>
               {% elif a.status == "NO_SHOW" %}
